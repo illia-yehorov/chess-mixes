@@ -16,7 +16,7 @@ Mix numbers:
 
 - `1` -> `basic`
 - `2` -> `deflection-attraction`
-- `3` -> `mix3` (Перекрытие / `interference`; rating 800–1000; 2–3 moves)
+- `3` -> `mix3` (Перекрытие / `interference`; rating 900–1200; 2–4 moves)
 
 If the number is missing or unknown, the batch file prints the available mixes.
 
@@ -81,17 +81,19 @@ Optional HTML selection tests (Node.js): `node --test chess/tests/mix.test.cjs`.
 ```text
 chess-mixes/
 ├── chess-generate.bat
-└── chess/
-    ├── generate_mix.py
-    ├── configs/
-    │   ├── basic.toml
-    │   ├── deflection-attraction.toml
-    │   └── mix3.toml
-    ├── GENERATION_RULES.md
-    ├── templates/
-    │   └── mix.html
-
+├── chess/
+│   ├── generate_mix.py
+│   ├── configs/
+│   │   ├── basic.toml
+│   │   ├── deflection-attraction.toml
+│   │   └── mix3.toml
+│   ├── GENERATION_RULES.md
+│   ├── templates/
+│   │   └── mix.html
+│   └── tests/
+├── scripts/
+│   └── build_site.py
 └── site/
     └── mixes/
-        └── newly generated HTML pages for publishing
+        └── generated HTML pages for publishing
 ```
