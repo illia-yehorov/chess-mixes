@@ -258,3 +258,32 @@ test("missing API puzzle is distinct from a network error", async () => {
         /Нет ответа API/
     );
 });
+
+
+test("generic mate theme is verified through Lichess mateInN tags", () => {
+    const page = setup(new Map());
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    const basePuzzle = {
+        id: "a-3-0", rating: 1100, lastMove: "e2e4",
+        solution: ["e7e5", "g1f3"]
+    };
+    for (const tag of ["mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5"]) {
+        const result = vm.runInContext(`comparePuzzle("a-3-0", "mate", ${JSON.stringify({
+            game: { id: "ABCDEFGH" },
+            puzzle: { ...basePuzzle, themes: ["short", tag] }
+        })})`, page.context);
+        assert.equal(result.status, "ok", "Expected valid mate for " + tag);
+    }
+    const missingMate = vm.runInContext(`comparePuzzle("a-3-0", "mate", ${JSON.stringify({
+        game: { id: "ABCDEFGH" },
+        puzzle: { ...basePuzzle, themes: ["backRankMate", "short"] }
+    })})`, page.context);
+    assert.equal(missingMate.status, "invalid");
+    assert.match(missingMate.message, /нет ожидаемой темы mate/);
+    const wrongSpecificTheme = vm.runInContext(`comparePuzzle("a-3-0", "backRankMate", ${JSON.stringify({
+        game: { id: "ABCDEFGH" },
+        puzzle: { ...basePuzzle, themes: ["mateIn2", "short"] }
+    })})`, page.context);
+    assert.equal(wrongSpecificTheme.status, "invalid");
+    assert.match(wrongSpecificTheme.message, /нет ожидаемой темы backRankMate/);
+});

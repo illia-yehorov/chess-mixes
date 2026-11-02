@@ -462,6 +462,14 @@ function showValidation(index, status, message) {
     updateValidationSummary();
 }
 
+// The Lichess API intentionally omits the generic "mate" tag, but keeps
+// its specific mateIn1..mateIn5 tags. Other themes must match exactly.
+function matchesExpectedTheme(expectedTheme, themes) {
+    return themes.includes(expectedTheme)
+        || (expectedTheme === "mate"
+            && themes.some(theme => /^mateIn[1-5]$/.test(theme)));
+}
+
 // Compare the live API response with the CSV snapshot generated into this HTML.
 function comparePuzzle(id, expectedTheme, response) {
     const expected = validationData?.[id];
@@ -485,7 +493,7 @@ function comparePuzzle(id, expectedTheme, response) {
     if (puzzle.solution.join(" ") !== originalSolution) {
         problems.push("изменилось решение");
     }
-    if (!puzzle.themes.includes(expectedTheme)) {
+    if (!matchesExpectedTheme(expectedTheme, puzzle.themes)) {
         problems.push("нет ожидаемой темы " + expectedTheme);
     }
     if (puzzle.rating < appData.ratingMin || puzzle.rating > appData.ratingMax) {
