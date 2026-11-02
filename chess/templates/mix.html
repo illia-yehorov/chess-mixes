@@ -505,7 +505,8 @@ function comparePuzzle(id, expectedTheme, response) {
 }
 
 async function validateSelectedPuzzles(selected) {
-    if (!validationData || selected.length === 0) return;
+    if (!validationData || Object.keys(validationData).length === 0
+        || selected.length === 0) return;
     const generation = ++validationGeneration;
     validationController?.abort();
     validationController = new AbortController();

@@ -211,3 +211,50 @@ test("API comparison rejects wrong solutions, themes and ratings", () => {
     assert.match(check.message, /темы a/);
     assert.match(check.message, /вне диапазона/);
 });
+
+test("batch verification checks one API puzzle and shows its result", async () => {
+    const page = setup(new Map());
+    page.context.AbortController = AbortController;
+    const requested = [];
+    page.context.fetch = async (url, options) => {
+        requested.push(url);
+        assert.equal(options.credentials, "omit");
+        return {
+            status: 200, ok: true, json: async () => ({
+                game: { id: "ABCDEFGH" },
+                puzzle: {
+                    id: "a-3-0", rating: 1190, lastMove: "e2e4",
+                    solution: ["e7e5", "g1f3"], themes: ["a"]
+                }
+            })
+        };
+    };
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`renderLastSelection(["a-3-0"])`, page.context);
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.deepEqual(requested, ["https://lichess.org/api/puzzle/a-3-0"]);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Подходит; рейтинг 1100 → 1190/
+    );
+    assert.match(page.elements.get("integrity-summary").textContent, /1 подходят/);
+});
+
+test("missing API puzzle is distinct from a network error", async () => {
+    const page = setup(new Map());
+    page.context.AbortController = AbortController;
+    vm.runInContext(`validationData["a-3-0"] = [1100, "", "e2e4", "e7e5"]`, page.context);
+    vm.runInContext(`renderLastSelection(["a-3-0"])`, page.context);
+    page.context.fetch = async () => ({ status: 404, ok: false });
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Задача недоступна/
+    );
+    page.context.fetch = async () => { throw new TypeError("CORS"); };
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Нет ответа API/
+    );
+});

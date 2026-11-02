@@ -174,7 +174,7 @@ def build_validation_record(row: list[str], moves: list[str], rating: int) -> li
     """Compact CSV snapshot used to verify a selected puzzle in the browser."""
     game_url = row[8] if len(row) > 8 else ""
     game_match = re.match(
-        r"^https://lichess\\.org/([A-Za-z0-9]{8})(?:[/?#]|$)",
+        r"^https://lichess\.org/([A-Za-z0-9]{8})(?:[/?#]|$)",
         game_url,
     )
     game_id = game_match.group(1) if game_match else ""
