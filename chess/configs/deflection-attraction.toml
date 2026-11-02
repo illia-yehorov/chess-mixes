@@ -7,8 +7,8 @@ popularity_min = 70
 min_plays = 50
 
 [rating]
-min = 900
-max = 1200
+min = 1000
+max = 1400
 
 [moves]
 min = 2
