@@ -198,6 +198,24 @@ button {
     margin-top: 20px;
     font-size: 17px;
 }
+.check-status {
+    display: block;
+    margin: 2px 0 0 18px;
+    font-size: 12px;
+    color: #64748b;
+    overflow-wrap: anywhere;
+}
+
+.check-status.ok { color: #166534; }
+.check-status.invalid { color: #b91c1c; }
+.check-status.unknown { color: #92400e; }
+
+.integrity-summary {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 </style>
 </head>
 
@@ -215,8 +233,10 @@ button {
 <section class="last-selection" id="last-selection" hidden>
     <strong>Последние выбранные задачи (по порядку вкладок):</strong>
     <ol id="last-selection-list"></ol>
-    <p>Сравни ID с номером задачи на Lichess. Если они отличаются,
-    в этой вкладке открылась другая задача.</p>
+    <p>После открытия вкладок страница проверит выбранные задачи через API Lichess.
+    Проверка не блокирует вкладки и не гарантирует, что Lichess не изменит
+    задачу позднее.</p>
+    <div class="integrity-summary" id="integrity-summary" role="status" aria-live="polite"></div>
 </section>
 
 <section class="instructions" aria-label="Инструкция">
@@ -298,6 +318,12 @@ const moveWeights = appData.moveWeights;
 const puzzlesPerClick = appData.puzzlesPerClick;
 const storageKey = appData.storageKey;
 const lastSelectionStorageKey = storageKey + ":lastSelection:" + document.title;
+const validationData = appData.validationData;
+let validationStatuses = [];
+let validationStates = [];
+let validationGeneration = 0;
+let validationController = null;
+let rateLimitedUntil = 0;
 
 const themes = Object.keys(themeWeights).filter(
     theme => (themeWeights[theme] || 0) > 0
@@ -388,6 +414,8 @@ function renderLastSelection(ids) {
     const section = document.getElementById("last-selection");
     const list = document.getElementById("last-selection-list");
     list.replaceChildren();
+    validationStatuses = [];
+    validationStates = [];
 
     ids.forEach((id, index) => {
         const item = document.createElement("li");
@@ -396,10 +424,134 @@ function renderLastSelection(ids) {
         link.href = "https://lichess.org/training/" + encodeURIComponent(id);
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        item.append((index + 1) + ". ", link);
+        const status = document.createElement("span");
+        status.className = "check-status";
+        status.textContent = "⏺ Ещё не проверено";
+        validationStatuses.push(status);
+        item.append((index + 1) + ". ", link, status);
         list.appendChild(item);
     });
     section.hidden = ids.length === 0;
+    updateValidationSummary();
+}
+
+function updateValidationSummary() {
+    const summary = document.getElementById("integrity-summary");
+    if (validationStatuses.length === 0) {
+        summary.textContent = "";
+        return;
+    }
+    if (validationStates.length === 0) {
+        summary.textContent = "Проверка запускается при выдаче новой подборки.";
+        return;
+    }
+    const count = state => validationStates.filter(item => item?.status === state).length;
+    summary.textContent = "Проверено: " + count("ok") + " подходят, "
+        + count("invalid") + " не подходят, "
+        + count("unknown") + " не удалось проверить, "
+        + count("checking") + " в очереди/проверяются.";
+}
+
+function showValidation(index, status, message) {
+    const element = validationStatuses[index];
+    if (!element) return;
+    const symbol = { checking: "⏳", ok: "✓", invalid: "✗", unknown: "?" }[status];
+    element.className = "check-status " + status;
+    element.textContent = symbol + " " + message;
+    validationStates[index] = { status, message };
+    updateValidationSummary();
+}
+
+// Compare the live API response with the CSV snapshot generated into this HTML.
+function comparePuzzle(id, expectedTheme, response) {
+    const expected = validationData?.[id];
+    if (!expected) {
+        return { status: "unknown", message: "Нет исходных данных для сравнения" };
+    }
+    const [originalRating, originalGame, originalLastMove, originalSolution] = expected;
+    const puzzle = response?.puzzle;
+    if (!puzzle || !Number.isFinite(puzzle.rating)
+        || !Array.isArray(puzzle.solution) || !Array.isArray(puzzle.themes)) {
+        return { status: "unknown", message: "Lichess вернул неполные данные" };
+    }
+    const problems = [];
+    if (puzzle.id !== id) problems.push("другой ID");
+    if (originalGame && response?.game?.id !== originalGame) {
+        problems.push("изменилась исходная партия");
+    }
+    if (puzzle.lastMove != null && puzzle.lastMove !== originalLastMove) {
+        problems.push("изменился начальный ход");
+    }
+    if (puzzle.solution.join(" ") !== originalSolution) {
+        problems.push("изменилось решение");
+    }
+    if (!puzzle.themes.includes(expectedTheme)) {
+        problems.push("нет ожидаемой темы " + expectedTheme);
+    }
+    if (puzzle.rating < appData.ratingMin || puzzle.rating > appData.ratingMax) {
+        problems.push("рейтинг " + puzzle.rating + " вне диапазона "
+            + appData.ratingMin + "–" + appData.ratingMax);
+    }
+    if (problems.length > 0) {
+        return { status: "invalid", message: problems.join("; ") };
+    }
+    if (puzzle.rating !== originalRating) {
+        return {
+            status: "ok",
+            message: "Подходит; рейтинг " + originalRating + " → " + puzzle.rating
+        };
+    }
+    return { status: "ok", message: "Совпадает с базой" };
+}
+
+async function validateSelectedPuzzles(selected) {
+    if (!validationData || selected.length === 0) return;
+    const generation = ++validationGeneration;
+    validationController?.abort();
+    validationController = new AbortController();
+    selected.forEach((_, index) => showValidation(index, "checking", "Ожидает проверки"));
+
+    if (Date.now() < rateLimitedUntil) {
+        selected.forEach((_, index) => showValidation(
+            index, "unknown", "Лимит API: повтори попытку через минуту"
+        ));
+        return;
+    }
+    // Lichess requests one API call at a time. Stop a batch on HTTP 429.
+    for (let index = 0; index < selected.length; index++) {
+        if (generation !== validationGeneration) return;
+        const { id, theme } = selected[index];
+        showValidation(index, "checking", "Проверяется по API Lichess");
+        try {
+            const result = await fetch(
+                "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
+                { signal: validationController.signal, credentials: "omit", cache: "no-store" }
+            );
+            if (generation !== validationGeneration) return;
+            if (result.status === 429) {
+                rateLimitedUntil = Date.now() + 60000;
+                for (let rest = index; rest < selected.length; rest++) {
+                    showValidation(rest, "unknown", "Лимит Lichess (HTTP 429); проверка остановлена");
+                }
+                return;
+            }
+            if (result.status === 404) {
+                showValidation(index, "invalid", "Задача недоступна (HTTP 404)");
+                continue;
+            }
+            if (!result.ok) {
+                showValidation(index, "unknown", "Ошибка API (HTTP " + result.status + ")");
+                continue;
+            }
+            const data = await result.json();
+            if (generation !== validationGeneration) return;
+            const check = comparePuzzle(id, theme, data);
+            showValidation(index, check.status, check.message);
+        } catch (_error) {
+            if (generation !== validationGeneration) return;
+            showValidation(index, "unknown", "Нет ответа API (сеть или CORS)");
+        }
+    }
 }
 
 let lastSelection = [];
@@ -550,7 +702,7 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
     const id = randomItem(bucket.available);
     used.add(id);
     selectedThisClick.add(id);
-    return id;
+    return { id, theme: bucket.theme };
 }
 
 function nextPuzzles() {
@@ -560,15 +712,17 @@ function nextPuzzles() {
     const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
     const order = shuffleMoveQuota(quota);
     const selectedIds = [];
+    const selectedDetails = [];
     const selectedThisClick = new Set();
 
     for (const moveCount of order) {
-        const id = selectNextPuzzle(moveCount, selectedThisClick);
-        if (id === null) {
+        const choice = selectNextPuzzle(moveCount, selectedThisClick);
+        if (choice === null) {
             // Do not silently replace a missing move count with another.
             break;
         }
-        selectedIds.push(id);
+        selectedIds.push(choice.id);
+        selectedDetails.push(choice);
         moveUsage[moveCount]++;
     }
 
@@ -588,9 +742,11 @@ function nextPuzzles() {
             + "по количеству ходов. Открыты доступные задачи."
         );
     }
+    // Open tabs synchronously: awaiting fetch here would trigger popup blockers.
     for (const id of selectedIds) {
         window.open("https://lichess.org/training/" + id, "_blank");
     }
+    void validateSelectedPuzzles(selectedDetails);
 }
 </script>
 

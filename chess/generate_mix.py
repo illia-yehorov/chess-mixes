@@ -5,6 +5,7 @@ import csv
 import html
 import io
 import json
+import re
 import tomllib
 from datetime import date
 from pathlib import Path
@@ -169,12 +170,24 @@ def get_active_move_counts(
     ]
 
 
+def build_validation_record(row: list[str], moves: list[str], rating: int) -> list:
+    """Compact CSV snapshot used to verify a selected puzzle in the browser."""
+    game_url = row[8] if len(row) > 8 else ""
+    game_match = re.match(
+        r"^https://lichess\\.org/([A-Za-z0-9]{8})(?:[/?#]|$)",
+        game_url,
+    )
+    game_id = game_match.group(1) if game_match else ""
+    # CSV includes the opponent's setup move; the API solution excludes it.
+    return [rating, game_id, moves[0], " ".join(moves[1:])]
+
+
 def read_puzzles(
     source_path: Path,
     config: dict,
     theme_ids: list[str],
     active_move_counts: list[int],
-) -> dict[str, dict[int, list[str]]]:
+) -> tuple[dict[str, dict[int, list[str]]], dict[str, list]]:
     if not source_path.is_file():
         raise RuntimeError(
             f"Lichess puzzle database not found: {source_path}"
@@ -187,6 +200,8 @@ def read_puzzles(
         }
         for theme_id in theme_ids
     }
+
+    validation_data: dict[str, list] = {}
 
     with source_path.open("rb") as compressed:
         dctx = zstd.ZstdDecompressor()
@@ -234,13 +249,20 @@ def read_puzzles(
                 puzzle_id = row[0]
                 puzzle_themes = set(row[7].split())
 
+                matched = False
                 for theme_id in theme_ids:
                     if theme_id in puzzle_themes:
                         puzzles[theme_id][solver_moves].append(
                             puzzle_id
                         )
+                        matched = True
 
-    return puzzles
+                if matched and puzzle_id not in validation_data:
+                    validation_data[puzzle_id] = build_validation_record(
+                        row, moves, rating
+                    )
+
+    return puzzles, validation_data
 
 
 def filter_available(
@@ -458,7 +480,7 @@ def main() -> None:
         TEMPLATE_DIR / config["template"]
     ).resolve()
 
-    puzzles = read_puzzles(
+    puzzles, validation_data = read_puzzles(
         source_path,
         config,
         theme_ids,
@@ -526,6 +548,9 @@ def main() -> None:
 
     app_data = {
         "puzzles": puzzles,
+        "validationData": validation_data,
+        "ratingMin": config["rating"]["min"],
+        "ratingMax": config["rating"]["max"],
         "themes": [
             {
                 "id": theme["id"],

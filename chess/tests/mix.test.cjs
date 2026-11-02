@@ -36,7 +36,10 @@ function setup(store, weights = { 3: 15, 4: 5 }, themeWeights = { a: 1, b: 1 }) 
         themeWeights,
         moveWeights: weights,
         puzzlesPerClick: 10,
-        storageKey: "usedPuzzles:test"
+        storageKey: "usedPuzzles:test",
+        validationData: {},
+        ratingMin: 1000,
+        ratingMax: 1400
     };
     const opened = [];
     const elements = new Map();
@@ -174,4 +177,37 @@ test("last batch stays visible on reload and changes on the next click", () => {
         .map(item => item.children[1].textContent.slice(1));
     assert.deepEqual(newLinks, reloaded.opened);
     assert.equal(new Set([...previousLinks, ...newLinks]).size, 20);
+});
+
+
+test("API comparison accepts a changed rating inside the configured range", () => {
+    const page = setup(new Map());
+    vm.runInContext(`appData.validationData = { "a-3-0": [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"] }`, page.context);
+    // comparePuzzle reads the original validationData reference, so exercise
+    // the comparison by setting it through the VM lexical binding.
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`appData.ratingMin = 1000; appData.ratingMax = 1400`, page.context);
+    const check = vm.runInContext(`comparePuzzle("a-3-0", "a", {
+        game: { id: "ABCDEFGH" },
+        puzzle: { id: "a-3-0", rating: 1200, lastMove: "e2e4",
+            solution: ["e7e5", "g1f3"], themes: ["a", "short"] }
+    })`, page.context);
+    assert.equal(check.status, "ok");
+    assert.match(check.message, /1100.*1200/);
+});
+
+test("API comparison rejects wrong solutions, themes and ratings", () => {
+    const page = setup(new Map());
+    vm.runInContext(`appData.validationData = { "a-3-0": [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"] }`, page.context);
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`appData.ratingMin = 1000; appData.ratingMax = 1400`, page.context);
+    const check = vm.runInContext(`comparePuzzle("a-3-0", "a", {
+        game: { id: "ABCDEFGH" },
+        puzzle: { id: "a-3-0", rating: 2100, lastMove: "e2e4",
+            solution: ["d7d5"], themes: ["b"] }
+    })`, page.context);
+    assert.equal(check.status, "invalid");
+    assert.match(check.message, /решение/);
+    assert.match(check.message, /темы a/);
+    assert.match(check.message, /вне диапазона/);
 });
