@@ -1,0 +1,80 @@
+name = "Основная солянка"
+source = "lichess_db_puzzle.csv.zst"
+template = "mix.html"
+
+puzzles_per_click = 10
+popularity_min = 70
+min_plays = 50
+
+[rating]
+min = 1000
+max = 1400
+
+[moves]
+min = 2
+max = 4
+
+[move_weights]
+"1" = 10
+"2" = 20
+"3" = 50
+"4" = 30
+
+# Filename placeholders:
+# {name}, {rating_min}, {rating_max}, {theme_numbers},
+# {moves}, {moves_min}, {moves_max}, {date}, {Y}, {M}, {D}
+#
+# {moves} = "3" for moves 3-3, or "1-3" for moves 1-3.
+# Example:
+# filename = "mix1 {date} R{rating_min}-{rating_max} M{moves}.html"
+[output]
+filename = "mix1 {date} R{rating_min}-{rating_max} M{moves}.html"
+
+[page]
+title = "mix1 R{rating_min}-{rating_max} M{moves}"
+heading = "Лёха & Папа — шахматная солянка"
+
+[[themes]]
+id = "hangingPiece"
+name = "Незащищённая фигура"
+weight = 2.0
+
+[[themes]]
+id = "fork"
+name = "Вилка"
+weight = 1.5
+
+[[themes]]
+id = "pin"
+name = "Связка"
+weight = 1.5
+
+[[themes]]
+id = "skewer"
+name = "Сквозной удар"
+weight = 1.0
+
+[[themes]]
+id = "capturingDefender"
+name = "Уничтожение защитника"
+weight = 1.25
+
+[[themes]]
+id = "discoveredAttack"
+name = "Вскрытое нападение"
+weight = 1.0
+
+[[themes]]
+id = "trappedPiece"
+name = "Пойманная фигура"
+weight = 0.75
+
+[[themes]]
+id = "backRankMate"
+name = "Мат по последней горизонтали"
+weight = 0.75
+
+[[themes]]
+id = "mate"
+name = "Мат"
+weight = 1.25

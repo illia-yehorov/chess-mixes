@@ -1,0 +1,17 @@
+# Large local Lichess puzzle database (never commit)
+chess/*.zst
+
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated Pages build output; site/mixes/*.html is intentionally tracked
+_site/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+

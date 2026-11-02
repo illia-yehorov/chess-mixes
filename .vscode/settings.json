@@ -1,0 +1,79 @@
+
+{
+  "window.title": "♞ Chess Mixes ♞${separator}${activeEditorShort}",
+
+  "workbench.colorTheme": "Default Light Modern",
+
+  "git.decorations.enabled": true,
+  "explorer.decorations.colors": true,
+  "explorer.decorations.badges": true,
+  "workbench.editor.decorations.colors": true,
+  "workbench.editor.decorations.badges": true,
+
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#E8D8BE",
+    "titleBar.activeForeground": "#423328",
+    "titleBar.inactiveBackground": "#F0E8D9",
+    "titleBar.inactiveForeground": "#887667",
+
+    "activityBar.background": "#E9DCC7",
+    "activityBar.foreground": "#4F3829",
+    "activityBar.inactiveForeground": "#8A7563",
+    "activityBar.activeBorder": "#986F48",
+    "activityBarBadge.background": "#79533C",
+    "activityBarBadge.foreground": "#FFF9EE",
+
+    "sideBar.background": "#F7F0E4",
+    "sideBar.foreground": "#46352D",
+    "sideBarTitle.foreground": "#5C4033",
+    "sideBarSectionHeader.background": "#EFE5D4",
+    "sideBarSectionHeader.foreground": "#47352B",
+
+    "editor.background": "#FFFCF7",
+    "editor.foreground": "#332D27",
+    "editorLineNumber.foreground": "#A79787",
+    "editorLineNumber.activeForeground": "#654C39",
+    "editorCursor.foreground": "#6F5037",
+    "editor.lineHighlightBackground": "#F6EFE3",
+    "editor.selectionBackground": "#EAD8B9",
+    "editor.inactiveSelectionBackground": "#F1E8D8",
+    "editorIndentGuide.background1": "#E9DED0",
+    "editorIndentGuide.activeBackground1": "#C6AB89",
+
+    "tab.activeBackground": "#FFFCF7",
+    "tab.activeForeground": "#3E2C22",
+    "tab.inactiveBackground": "#F0E8DA",
+    "tab.inactiveForeground": "#7B695A",
+    "tab.activeBorderTop": "#8E6240",
+
+    "statusBar.background": "#78553D",
+    "statusBar.foreground": "#FFF8EA",
+
+    "panel.background": "#FFFCF7",
+    "terminal.background": "#FFFCF7",
+    "terminal.foreground": "#332D27",
+
+    "list.activeSelectionBackground": "#E2C9A7",
+    "list.activeSelectionForeground": "#2E231D",
+    "list.inactiveSelectionBackground": "#F0DDC5",
+    "list.inactiveSelectionForeground": "#2E231D",
+    "list.hoverBackground": "#F2E6D6",
+    "list.focusOutline": "#986F48",
+
+    "list.warningForeground": "#B45309",
+    "list.errorForeground": "#B00020",
+
+    "gitDecoration.modifiedResourceForeground": "#B00035",
+    "gitDecoration.stageModifiedResourceForeground": "#B00035",
+
+    "gitDecoration.untrackedResourceForeground": "#007D3A",
+    "gitDecoration.addedResourceForeground": "#007D3A",
+
+    "gitDecoration.deletedResourceForeground": "#D00000",
+    "gitDecoration.stageDeletedResourceForeground": "#D00000",
+
+    "gitDecoration.renamedResourceForeground": "#6C35B5",
+    "gitDecoration.conflictingResourceForeground": "#E00000",
+    "gitDecoration.ignoredResourceForeground": "#A69A8C"
+  }
+}
