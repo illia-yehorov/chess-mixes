@@ -1,6 +1,8 @@
 """Tests for output filename date placeholders."""
 
+from contextlib import redirect_stdout
 from datetime import date
+from io import StringIO
 from html import escape
 from pathlib import Path
 import sys
@@ -8,7 +10,9 @@ import tomllib
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from generate_mix import build_pattern_values, format_pattern, render_template
+from generate_mix import (
+    build_pattern_values, format_pattern, print_statistics, render_template,
+)
 
 
 class FilenamePatternTests(unittest.TestCase):
@@ -91,6 +95,30 @@ class FilenamePatternTests(unittest.TestCase):
                     escape(heading),
                     rendered.split("<title>", 1)[1].split("</title>", 1)[0],
                 )
+
+    def test_print_statistics_accepts_output_outside_chess_directory(self) -> None:
+        # Generated files live in site/mixes, a sibling of the chess directory.
+        root = Path(__file__).resolve().parents[2]
+        output_file = root / "site" / "mixes" / "test.html"
+        config = {
+            "name": "Test mix",
+            "rating": {"min": 900, "max": 1200},
+            "moves": {"min": 2, "max": 2},
+            "puzzles_per_click": 10,
+        }
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            print_statistics(
+                config=config,
+                themes=[{"id": "fork", "name": "Fork", "weight": 1}],
+                move_counts=[2],
+                puzzles={"fork": {2: ["abcd"]}},
+                move_weights={2: 1},
+                output_path=output_file,
+            )
+        self.assertIn("Создан файл: site", buffer.getvalue())
+        self.assertIn("mixes", buffer.getvalue())
+        self.assertIn("test.html", buffer.getvalue())
 
     def test_unknown_placeholder_still_fails(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "Unknown placeholder"):
