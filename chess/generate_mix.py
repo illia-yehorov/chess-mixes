@@ -400,7 +400,7 @@ def print_statistics(
     print()
     print(
         f"Создан файл: "
-        f"{output_path.relative_to(BASE_DIR)}"
+        f"{output_path.relative_to(BASE_DIR.parent)}"
     )
     print()
     print(
