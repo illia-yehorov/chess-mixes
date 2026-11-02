@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+<meta charset="UTF-8">
+<title>mix3 R900-1200 M2-4</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 24px auto;
+    padding: 0 20px 40px;
+    text-align: center;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #f1f5f9;
+}
+
+.chess-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.25;
+}
+
+.instructions {
+    max-width: 680px;
+    margin: 16px auto 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+}
+
+.instruction-item + .instruction-item {
+    border-top: 1px solid #e2e8f0;
+}
+
+.instruction-item summary {
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.instruction-item summary:hover {
+    background: #f8fafc;
+}
+
+.instruction-item p {
+    margin: 0;
+    padding: 0 16px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+    body {
+        margin-top: 16px;
+        padding: 0 12px 24px;
+    }
+
+    .page-header {
+        gap: 8px;
+        padding: 12px 10px;
+    }
+
+    .page-header h1 {
+        font-size: 20px;
+    }
+
+    .chess-icon {
+        font-size: 23px;
+    }
+
+    .instruction-item summary {
+        padding: 10px 12px;
+    }
+
+    .instruction-item p {
+        padding: 0 12px 12px;
+    }
+}
+
+button {
+    font-size: 24px;
+    padding: 14px 28px;
+    cursor: pointer;
+}
+
+.last-selection {
+    max-width: 680px;
+    margin: 12px auto 0;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    font-size: 14px;
+}
+
+.last-selection[hidden] {
+    display: none;
+}
+
+.last-selection ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.last-selection a {
+    color: #2563eb;
+}
+
+.last-selection p {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.settings {
+    margin-top: 16px;
+    line-height: 1.7;
+    color: #666;
+}
+
+.section-title {
+    margin-top: 14px;
+    font-weight: bold;
+}
+
+.config-table {
+    margin: 6px auto;
+    border-collapse: collapse;
+}
+
+.config-table th,
+.config-table td {
+    padding: 7px 14px;
+    border-bottom: 1px solid #ddd;
+}
+
+.config-table th {
+    font-weight: bold;
+    background: #f5f5f5;
+}
+
+.themes-table {
+    min-width: 480px;
+}
+
+.themes-table th:nth-child(1),
+.themes-table td:nth-child(1) {
+    width: 40px;
+    text-align: center;
+}
+
+.themes-table th:nth-child(2),
+.themes-table td:nth-child(2) {
+    text-align: left;
+}
+
+.themes-table th:nth-child(3),
+.themes-table td:nth-child(3) {
+    width: 60px;
+    text-align: center;
+}
+
+.moves-table {
+    min-width: 220px;
+}
+
+.moves-table th,
+.moves-table td {
+    text-align: center;
+}
+
+.parameters {
+    margin-top: 20px;
+    font-size: 17px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="page-header">
+    <span class="chess-icon" aria-hidden="true">♛</span>
+    <h1>Лёха &amp; Папа — шахматная солянка</h1>
+</header>
+
+<button onclick="nextPuzzles()">
+    🎲 Следующие 10 задач
+</button>
+
+<section class="last-selection" id="last-selection" hidden>
+    <strong>Последние выбранные задачи (по порядку вкладок):</strong>
+    <ol id="last-selection-list"></ol>
+    <p>Сравни ID с номером задачи на Lichess. Если они отличаются,
+    в этой вкладке открылась другая задача.</p>
+</section>
+
+<section class="instructions" aria-label="Инструкция">
+    <details class="instruction-item">
+        <summary>♟️ Как решать задачи</summary>
+        <p><strong>Одна вкладка — одна задача.</strong> Решай только ту задачу,
+        которая открылась. Не нажимай на Lichess кнопку «Следующая задача» —
+        переходи к следующей вкладке.</p>
+    </details>
+
+    <details class="instruction-item">
+        <summary>🗂️ Если Chrome блокирует вкладки</summary>
+        <p>Вернись на вкладку с солянкой. Справа в адресной строке нажми
+        значок блокировки всплывающих окон, разреши их открытие для этой
+        страницы и снова нажми кнопку запуска задач.</p>
+    </details>
+</section>
+
+<div class="settings">
+
+    <div class="section-title">
+        Темы:
+    </div>
+
+    <table class="config-table themes-table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Тема</th>
+                <th>Вес</th>
+            </tr>
+        </thead>
+        <tbody id="themes-body"></tbody>
+    </table>
+
+    <div class="section-title">
+        Количество ходов:
+    </div>
+
+    <table class="config-table moves-table">
+        <thead>
+            <tr>
+                <th>Ходов</th>
+                <th>Вес</th>
+            </tr>
+        </thead>
+        <tbody id="moves-body"></tbody>
+    </table>
+
+    <div class="parameters">
+        Рейтинг:
+        <strong>
+            900–1200
+        </strong>
+
+        <br>
+
+        Решение:
+        <strong>
+            2–4 ходов
+        </strong>
+
+        <br>
+
+        За одно нажатие:
+        <strong>
+            10 задач
+        </strong>
+    </div>
+
+</div>
+
+<script>
+const appData = {"puzzles": {"interference": {"2": ["01Qta", "08SOm", "0FuFJ", "0IUHG", "0Iv0a", "0K3B5", "0KAJX", "0MQAS", "0NqoB", "0P51N", "0QuO4", "0TgmV", "0UQCT", "0UrRF", "0UsAp", "0W8hL", "0WTKq", "0WkIU", "0XxBr", "0Ztyo", "0cU1q", "0fAbc", "0gPAc", "0h6gO", "0izZo", "0j2CC", "0kFRA", "0p1p0", "0rRZ2", "0rfoh", "0x2Ln", "10x8R", "11Y5c", "127EV", "13eZb", "15WQO", "15mbK", "19cee", "1B4xZ", "1CWIx", "1LxtV", "1N9TR", "1OPG6", "1PsZR", "1Qppl", "1R21N", "1V5ZJ", "1X5IN", "1XFll", "1XeuS", "1aKcc", "1fQp5", "1hod3", "1nXa2", "1r2y3", "1z1gf", "1znLL", "24U04", "28WMW", "292yE", "29ocj", "2AUxX", "2GFAd", "2GX4U", "2HIFD", "2HtVK", "2IgH5", "2MgcP", "2MqV4", "2Nzvr", "2QIZ4", "2R9p0", "2RxZW", "2VBs3", "2W8AG", "2ZCyz", "2cTbc", "2ev3n", "2fXXv", "2h9RV", "2hPIE", "2i75g", "2jiCJ", "2rgI1", "2sXHf", "2uMKs", "2yCdt", "3DSm8", "3Dc1E", "3Dhi0", "3ETw8", "3GD8Z", "3ICV5", "3IRPl", "3LsXV", "3Opkr", "3P5FF", "3V2Qv", "3Wi8y", "3X1s8", "3X8sF", "3XUZy", "3YDY0", "3YHcN", "3YZMp", "3acII", "3dEae", "3gq9d", "3icwN", "3nuxg", "3q9PF", "3udBl", "3vkhY", "3x5xY", "3xKNS", "3xwq5", "3yQYT", "3yv6u", "40FaX", "43kjG", "43uZ5", "44ZzG", "46JqL", "49h84", "4B636", "4DgjN", "4EPnk", "4JQAe", "4Jme6", "4Kn9c", "4LEKt", "4O71x", "4OzZv", "4SBpn", "4SE7x", "4TehN", "4VanX", "4ZXQD", "4ZvXD", "4ad7m", "4j1gH", "4jWwS", "4kAEF", "4kMuP", "4vE5l", "4xlFM", "50NX0", "50dOP", "55F8y", "55adW", "57VXK", "58jdg", "5B0cB", "5Dhng", "5EDgD", "5Ema5", "5GVxY", "5K2BH", "5LTFs", "5Lpv5", "5MwXs", "5NNu4", "5NbVr", "5OGEr", "5Out5", "5U7x4", "5UpXl", "5VKcL", "5VuUQ", "5YPVx", "5aD0k", "5aE2x", "5aYvd", "5epTp", "5pHqc", "5uWIG", "5uqbv", "5xez7", "61pZa", "62wr6", "67vvq", "68jps", "6AgUt", "6Begy", "6DqEz", "6ECTW", "6HHji", "6JXVj", "6OoWx", "6PNW8", "6Rtw9", "6Wmuu", "6X2pu", "6XPse", "6b1M3", "6fO9q", "6hEjy", "6jQJL", "6kga4", "6pQrA", "6qWPR", "6qk0T", "6r3Nd", "6tr0n", "6vOST", "6wVfe", "6xNrj", "6xaYS", "716Z5", "74K27", "76403", "76SY8", "77tWA", "78g1V", "78iUm", "78t8i", "7BzXd", "7CvO1", "7IXl0", "7Ilyj", "7NtuI", "7SVxL", "7SaKH", "7UdId", "7VBNl", "7VHjO", "7WGKE", "7ZRUU", "7aYIa", "7fHVu", "7mQ73", "7mopi", "7mxAs", "7qLW0", "7rDCH", "7rQea", "7uvQi", "7wREv", "7we6i", "7xAaH", "7zuBp", "80clV", "86rLP", "8HOeC", "8MJeJ", "8NRgQ", "8ROPg", "8VJ3J", "8Zlcz", "8aHNK", "8cgCU", "8dzWC", "8eedq", "8gBN2", "8hxE7", "8i86x", "8jVc3", "8nMBF", "8rSjd", "8s7fx", "8ywxY", "92Mdv", "92WGj", "92izw", "93XE3", "93m2P", "95D2g", "95X6v", "98o5x", "994Yz", "9ACgY", "9ATif", "9CncV", "9EjoP", "9GPCX", "9KvM0", "9MN95", "9Medc", "9Mpep", "9NHtm", "9NNrS", "9Of43", "9Ooe2", "9UJpR", "9UTvM", "9UUvz", "9Vivc", "9XoSu", "9Xq13", "9YGTL", "9Z07w", "9ZUIm", "9a8gH", "9depp", "9fDci", "9iOac", "9pNeR", "9x2fX", "9xuxG", "9yipa", "A0FUL", "A1FQz", "A8v3t", "A9ATz", "ADY3l", "AHl4D", "ALAlT", "AXAjF", "AXY8H", "AaEon", "AbS14", "AcL2q", "ActUA", "Af8z9", "AngL3", "AqLvx", "AtWfN", "Awe9o", "Ax7B7", "AxDn9", "AyHwP", "Az2Bm", "Azvyk", "B1gLm", "B2POC", "B3f9u", "B3zCm", "B4VlG", "B8iW3", "BElJH", "BI4P8", "BJGLy", "BJM7n", "BJS2O", "BNJD0", "BOUWa", "BOrgM", "BQ9IS", "BSHmv", "BTO1P", "BV2P5", "BV2Xj", "BW6ng", "Bd60G", "BfEeR", "BfwLG", "BtMbT", "BwHEW", "Byx2n", "C0gRZ", "C56Ww", "C6Nlc", "C86dj", "CHzt0", "CIfxS", "CJneR", "CKED0", "CKWNL", "CLDDw", "CNOnN", "CQ7Gq", "CTabm", "CW1VI", "Cbrfa", "CccIG", "CeNdU", "CfD1x", "Cj6M0", "CkZKu", "ClrMK", "CnK5z", "CrJGl", "CvA47", "CvbWm", "Cvl3N", "D13W3", "D4U36", "D4t1y", "D6fd2", "D8c40", "D9j2w", "DAs3f", "DAtXB", "DCJOz", "DD4EP", "DEJz4", "DHNtm", "DHpao", "DJJPG", "DMaLA", "DMeuM", "DTnPI", "DVYXD", "DZxPj", "DawM3", "DhzzS", "DmUvo", "DmaPK", "DmlbC", "Dq0E6", "DrGDQ", "DrUO1", "DzPrc", "E1sy5", "E32jy", "E38GN", "E5lvP", "E6rYN", "E7P1W", "E9ThX", "EAEGk", "EJrSN", "EMUX4", "ENmlp", "ERequ", "ESadc", "EV0vd", "EZQ35", "EZYaI", "EZmDZ", "EaAlC", "EaVrE", "EhsYp", "Ej6d7", "Ejhgm", "ElQ6u", "EmEP4", "EoWtC", "EqRNN", "EsJrn", "Esk7s", "EswAP", "EumnC", "EwZIf", "Expvz", "F0TKY", "F0f83", "F10sO", "F6u29", "F9g0x", "F9pFh", "FB7iX", "FBvQg", "FDH9z", "FFOhT", "FHLw8", "FIhnH", "FLRiO", "FLRxZ", "FOLnM", "FOdH8", "FSQc5", "FUDKg", "FZppk", "Fbytw", "FdoAX", "Ff9yA", "FfPWV", "FfPzr", "Fi30Y", "FjP1K", "FjaRZ", "FkRQZ", "FkWGo", "FoNXK", "Fpw6A", "Fqtzc", "FsD9f", "FwRkr", "Fy2ZL", "FzF8H", "FzVhd", "Fzycz", "G0g3C", "G0pDh", "G33mq", "G3Yen", "G5h6A", "G61tS", "GCdKt", "GDupV", "GGEze", "GIdtL", "GJdvB", "GKHuX", "GLelz", "GQCuB", "GQKEc", "GTv4H", "GVqvd", "GWzks", "GXCwV", "GXqLv", "GYKR2", "GZgg3", "GaEJI", "GbU39", "GcRCr", "Gd0gA", "GeHCV", "GjeSL", "Glgev", "Gm7Fg", "Gn1oU", "GrET5", "GsWbT", "Gvylv", "H0gTI", "H148i", "H2idH", "H7T7J", "HGpOg", "HGwwJ", "HHv2y", "HIgfK", "HIpC7", "HLCFh", "HO9qn", "HSU7N", "HZtN9", "Hdcz6", "HfoKq", "Hfphy", "Hjl1f", "HkoHU", "Hl5w9", "HlcNW", "Hp6cY", "HqNH1", "HsCI4", "Hvcba", "I6Xt7", "I8HfM", "I9lqJ", "IB7H0", "IBisq", "ICLv6", "IDeGQ", "IL32Z", "IRAbZ", "IT0Dg", "IWXpz", "IY4NB", "IcTOR", "IfpYu", "Ijln4", "IrTly", "ItUfG", "Ixii5", "Iz8jO", "IzSsA", "Ize1q", "J0xF6", "J1Gxc", "J3xh9", "J5hcX", "J7rHo", "J8tTg", "J9aUV", "JDVn5", "JHLof", "JHUNy", "JK3Yr", "JQAkK", "JT0BS", "JWYON", "JYBrN", "JYYHc", "JZ4YY", "JbMTP", "JbWne", "JbtHS", "Jck6D", "JgImE", "JhVAG", "JnGq1", "JnOdP", "JqWak", "Jtrxo", "JuCt0", "JuZq6", "Juej2", "K0IWi", "K1C6Z", "K1qfp", "K3lb7", "K5T16", "K5o8Z", "KC5pF", "KCaKF", "KCiKj", "KDMCS", "KDbA6", "KDjQd", "KE4c9", "KE9Bl", "KEWfm", "KEYO9", "KFv2T", "KLeH6", "KNZNP", "KOAnR", "KQwe3", "KRvYP", "KSKvF", "KSmn9", "KTjEz", "KUk4o", "KbZ8f", "KdLAK", "Kisht", "KjLlO", "KlyQF", "KoSvU", "Kspur", "KtkN0", "Kvhoa", "KxH7Y", "KxYel", "L1P6G", "L1S0V", "L5Z7M", "L6JAG", "L7hyA", "L81bx", "L9Ho8", "LAAsK", "LCEg7", "LJJs4", "LNWFQ", "LNgpw", "LNohK", "LXRyt", "LY8rH", "LYmCb", "LZCl0", "LiSUW", "LmmgQ", "LnMFo", "LpPDE", "LvZp7", "Lvajl", "M0QoB", "M8PAt", "M8yV0", "MCzXv", "MFv4D", "MIkZH", "MRhOy", "MSRv8", "MTZjn", "MTt3T", "MU4gN", "MUSMS", "MVRXC", "MW2TG", "MXTNd", "MXl9P", "MZ1yI", "MbpUM", "McRSF", "MdW7a", "MeyNs", "Mh2AC", "Mi4fw", "MiZXy", "Mirxa", "Miv4F", "Mj9ND", "MkESD", "MmHhO", "MorAn", "Ms1xr", "MsOii", "MumZh", "MyjNv", "MzObL", "N0YUm", "N8nV5", "N9qLZ", "NAGUx", "NEh3h", "NHAaL", "NHjP6", "NJm1X", "NMibh", "NN9jx", "NNIbY", "NOGPQ", "NReWR", "NRyCQ", "NSOWY", "NUkt4", "Negzt", "NelRL", "Ngjvy", "Nia7X", "Nmb5M", "NwrjP", "NxEt1", "NyokT", "NzN1r", "O0j0m", "O0q3n", "O3Oze", "O3qDD", "O4I3F", "O4aMv", "O7dW8", "OA3v2", "OBWqW", "OFbtY", "OHadv", "OI5qs", "OJTdi", "OJf64", "OV3PO", "OWvpq", "OZuhw", "OaXYR", "Ob1oV", "OiWvP", "Om3ry", "OndAr", "OoZIJ", "Opts6", "OwN4h", "OwVXL", "P02xn", "P5HsX", "P6kGc", "P7kf9", "P9G46", "PJRmL", "PJZjS", "POUuK", "PPmWt", "PQrTY", "PR2im", "PSqI6", "PVYHP", "PZrMO", "Pa2rD", "PcXY9", "PqCow", "PrTVL", "PreKA", "Pw4LW", "Px9An", "PyYkr", "PyoTz", "Q1Rb4", "Q1Tpl", "Q8UMr", "QAlcL", "QE05t", "QJv4D", "QJwPl", "QK1Z3", "QKHjH", "QKmo8", "QKtwZ", "QKzKZ", "QMRvi", "QOhQK", "QPwpY", "QR8Vv", "QSX4i", "Qank9", "QaoXZ", "Qd2Gy", "QiFik", "Qiv8M", "QpI3K", "QuTaU", "QyFdi", "Qzmwr", "R0LJN", "R16t2", "R3aS6", "R6TOj", "R702A", "R8SMs", "RDGtF", "RNaCo", "RRAqV", "RYa9J", "RZSPT", "RcIvZ", "RcXho", "RdU8E", "RejCF", "RiMuj", "RmkC6", "RokDk", "RrXh0", "Rv4HB", "RwoEh", "S13lo", "SGh9p", "SHKxF", "SJ3Ma", "SJeHN", "SKFGU", "SL3wz", "SP1AW", "SPhB3", "SQVkJ", "SQfCV", "SQyYm", "SRODL", "SYZgy", "SYZuu", "SaMFT", "SbbdJ", "SbhCK", "Se5Jm", "SfQ8A", "Sfebf", "ShlED", "SioV4", "Skbl9", "Sq40h", "SsppQ", "Sz45A", "T3jF7", "T4Iiy", "T60rq", "T7kax", "TAFfq", "TBPVz", "TC10z", "TCCC8", "THOrh", "THtcu", "TKuWG", "TP7Cm", "TUJzU", "TVcEB", "TbfWe", "TcdAj", "TeuLk", "TfBin", "TftV6", "TgDR1", "TgkWQ", "TpayW", "TrhXe", "Tva24", "TwP8s", "TwXVo", "TwiGY", "U0WgM", "U28Es", "U2jDY", "U34uq", "U4yCw", "U7wHU", "U8YPp", "U8e4N", "U8oCD", "UGOSo", "UIMW9", "UJa04", "UKCuc", "UMB8R", "UPZFD", "UPkcR", "URemb", "UTuKb", "UWlsO", "UWmay", "UXMmJ", "UZAWz", "UZW7S", "UalrV", "UfkVB", "UfpIX", "Ug9h2", "UgNJv", "Uhtru", "Uknbl", "UqFpS", "UtZ08", "V1fRj", "V3Woi", "V72QJ", "V8Bl3", "V9nX9", "VFVZX", "VFfiU", "VIWRl", "VJEmd", "VQ0rL", "VQIhp", "VRFhT", "VUpb6", "VWrdo", "VWsf8", "VXGPy", "Vawa1", "VcnOx", "Vd5mV", "VfpR0", "Vi1hL", "Vj96S", "VlP3K", "VtPiv", "VwGtu", "Vxp1j", "W1Cg9", "W2n7u", "W4QVZ", "W4oCu", "W8Es4", "WDjmT", "WElUl", "WFL4L", "WFhqD", "WH5fd", "WHuWP", "WIJrq", "WNLdx", "WSkb0", "WTFgt", "WW6Go", "WYZO1", "Wa7RP", "Wb7xL", "WbIbY", "WbZma", "WbtW9", "WeAc7", "WeYYC", "WihoJ", "WjNrw", "Wjqw8", "WqfAt", "WqylD", "WrTo3", "WtHoD", "Wtnw3", "WwhRS", "Wy1sr", "X0cwQ", "X0uEh", "X1Qsb", "X5o0S", "XGCzt", "XGfYx", "XIObc", "XKm5x", "XLMmj", "XLerZ", "XMN9l", "XQZOn", "XQwol", "XR6oC", "XSzTT", "XUGk0", "XUZ9o", "XUhhx", "XWcMR", "XYz35", "XbaAQ", "XiNIF", "XjxyM", "Xmr7Z", "XnVsa", "Xnkqm", "XsvyL", "XtHt1", "XuNa7", "XufaE", "Xwr7H", "Y1wC8", "Y2g7W", "Y3Yua", "Y6Rrv", "Y6ZHd", "Y8hgc", "Y9nrX", "YApb1", "YBNID", "YBzyO", "YCJ2b", "YCpVf", "YDoEj", "YEHgg", "YGTmO", "YGgOG", "YHrJU", "YKWVI", "YLAuo", "YLtX9", "YMJFa", "YOduO", "YOkdd", "YPX3a", "YT3Oa", "YTZcb", "YYQK6", "YZwfZ", "Ya8J7", "YdHN9", "YeosQ", "Yf3lU", "YflYi", "YjCIb", "Ynphd", "YotUj", "Yqj7o", "YtS2K", "YuJ2a", "YwCzl", "Yz0dk", "Z1gYw", "Z3GNC", "Z9bJD", "ZDQ3K", "ZGN7N", "ZKKYM", "ZNfgI", "ZP8Gc", "ZPMK1", "ZPP5h", "ZeR9e", "ZfwIo", "Zg5wl", "Zgkdb", "Zisdw", "ZkEFt", "Zkhao", "Zn8Kz", "Zo5lR", "Zrp2o", "a79Qq", "a7Bue", "a7U9R", "a7tXx", "a8Awl", "aAiKa", "aCRgN", "aCa3Z", "aCiPj", "aF2mz", "aHhCd", "aJKS6", "aObxb", "aQARp", "aTA2J", "aU8aQ", "aa642", "ahGAE", "aiBtp", "aiJYd", "aiUZS", "ajX58", "akeit", "alDnj", "alNG8", "als1E", "apX6m", "aq0nS", "aqVHy", "aqaLW", "ari0j", "avp0q", "avzeI", "aw0sF", "b0OuU", "b1fyq", "b22ok", "b3GoJ", "b3lHF", "b4QCV", "b64ei", "b6yQ0", "bH8zP", "bI8nH", "bJ1a7", "bJ8rm", "bPufs", "bQgTy", "bTs1y", "bU6D5", "bVgEJ", "bZG14", "bd9kv", "bkH1J", "boEjO", "boVMY", "brnzG", "bu1us", "bukrA", "busut", "bwzAp", "bzu46", "c7k65", "c9RrL", "c9XaZ", "cFgmk", "cGMLj", "cGPWi", "cHWkt", "cJ8Wg", "cLR9s", "cMquf", "cPHE8", "cPrdq", "cR8g3", "cSJ6L", "cU1ZO", "cUxfr", "cV06J", "cX5AN", "cYssK", "caJCw", "cafL5", "ck8iA", "cl9dK", "cossV", "cqypP", "crTiX", "cuMUG", "cwl8W", "cwzH0", "cx4Cp", "cxmYN", "d0l78", "d4qV1", "dAsXi", "dAvnW", "dI2V0", "dPBtH", "dPeXP", "dPkbZ", "dRJmw", "dS65F", "dSfiQ", "dXfoi", "de0Iv", "dfats", "dfbrx", "dhIeL", "dhaqm", "djJXQ", "dr6Ji", "drdUu", "dsAen", "dsQyR", "duOrC", "dw6Yh", "dw8rQ", "e2jAc", "e3Y9G", "e4EME", "e4l5h", "e9Eyb", "eAHH6", "eCWQU", "eDbTU", "eE0ud", "eFL3X", "eFNsc", "eFuHa", "eHCp1", "eLQXO", "ePjU9", "eQ1j6", "eVYGX", "eY5oG", "eZ393", "eZJ5p", "edwpM", "efoKP", "egCtz", "egvhh", "egzZV", "eiTLW", "eqInt", "eqs9j", "ex6lL", "exETl", "exMOV", "f00ME", "f4Nvd", "f8KXT", "f98yN", "fArqb", "fBCVl", "fBTl5", "fBqe7", "fFQOA", "fKDdd", "fMgVT", "fR6sY", "fSGpy", "fVKqU", "ffVhj", "fftpS", "fiiSL", "fjrm7", "flzj2", "fnato", "fqC1g", "fqWFV", "fr2mo", "fsmd8", "fu2HR", "g13GZ", "g3sA4", "g3vhQ", "g9yd9", "gBqbP", "gC4vV", "gGjWO", "gKchI", "gKfWX", "gKhdt", "gKosc", "gNdvT", "gNhE0", "gOXV3", "gPa97", "gTANq", "gTfqr", "gUGU7", "gXIGC", "ghwGv", "giLdZ", "gjbti", "gkNLL", "gohy5", "gqLJT", "gqOBe", "gtxe0", "gvZeP", "h5eEr", "h8naD", "hCRki", "hEM1K", "hFKoe", "hIG5K", "hKhj2", "hMxTl", "hMzoo", "hRbjx", "hS3La", "hSiHt", "haRD2", "hcrHG", "hgmlP", "hiED3", "hjvEB", "hmdlP", "hncTC", "hp68t", "hq4Vy", "hrt1k", "htcgR", "hybQh", "i0k5f", "i7S5S", "iCLEs", "iClbL", "iGbjh", "iK1Dp", "iNCkY", "iRuYQ", "iSl8I", "iUoVH", "iUwCP", "iWdgf", "iYI5r", "iYYuI", "ieFUa", "iifiM", "ijKOv", "ikJQ4", "ikthJ", "inYyo", "itpoh", "iubD5", "iv7yj", "iwsub", "izDYz", "j2d7u", "j5TFH", "j68DR", "j8Be9", "jAY4M", "jBW3H", "jDFsh", "jDsgH", "jEsNO", "jJgZD", "jOCVn", "jOcIG", "jPF7C", "jPUA5", "jQbOg", "jRzll", "jTmGq", "jZmq6", "jZwrf", "jaDjl", "jboll", "jd2Hn", "jjBYH", "jkmvz", "jmuu3", "jqFtx", "jr8UM", "jtRil", "jzOSJ", "k18nf", "k1T1r", "k8pCC", "kB8ZK", "kCV1U", "kD8yF", "kEkUx", "kGzOi", "kHCx9", "kHxYr", "kIeBE", "kJlVv", "kMlE4", "kMolq", "kNgj7", "kPx5B", "kRs8D", "kTjPD", "kVtWH", "kWB61", "kX7DK", "kZgOa", "kaDbO", "kclEH", "kd3v0", "kgPAM", "kgaoS", "kjMxD", "kjmCF", "kkFTj", "krm7H", "krzzv", "ks6uz", "kvDCn", "kzPFh", "kzt4K", "l1chV", "l2OQ6", "l4RZO", "l5WK9", "l75aB", "l9OI6", "lAf4y", "lEbMP", "lITDr", "lJiC9", "lJzjs", "lKCvs", "lMWax", "lSYw2", "lYA1O", "laqXL", "lfxhK", "lgo9Y", "lhvWa", "liEqb", "lmAZk", "lsVDd", "ltp60", "lyQz5", "lyV3H", "m2UNd", "m6Ovu", "m70rE", "m85Ym", "m92cZ", "mBvYc", "mCCK4", "mFIbY", "mGGRm", "mGmzD", "mINXP", "mKPwU", "mKrfG", "mMPDU", "mPWef", "mX6yh", "mYIgc", "mYyku", "masQP", "mcLOP", "mdMa7", "mhhoh", "mi0m9", "miPZ5", "miZi7", "mjeNp", "ml6P7", "mp7GM", "ms4L0", "msnNq", "mu3WQ", "mv185", "my7TT", "n3S8j", "n9zWw", "nCft9", "nGcvS", "nKOCF", "nLRVp", "nO7Em", "nQnkL", "nRFr7", "nS7N5", "nSaXK", "nUmbS", "nWfa0", "nXshX", "nZ8ti", "nZmCG", "ndqyy", "neDA3", "nfUWe", "nhl5u", "nj1aQ", "nkkOu", "nmGke", "no24c", "npYvH", "nqoMU", "ns8VP", "nvCP1", "nvdY4", "nxsdh", "o3r0c", "o5dmt", "oElAa", "oHotJ", "oMdSR", "oOuqN", "oPEou", "oS99r", "oSMn5", "oUmxy", "oaO5y", "obl9C", "oh8Gs", "ok39p", "onoln", "ot2aY", "ovgFm", "owEad", "oxUBB", "oxrow", "oyJhS", "oz6na", "ozB1X", "p11eG", "p35Sq", "p4I0T", "p4UUe", "p9Xcj", "p9Zgz", "p9voS", "pBDOf", "pBR9r", "pBodI", "pCCvu", "pDTg3", "pDVej", "pFY92", "pNVns", "pU8rA", "pVv9O", "pYcZI", "pbh9C", "pcnrZ", "peMSq", "pkI4m", "plOs6", "prrlj", "psZsx", "ptNpG", "pxVZH", "q06d7", "q9GfI", "qAlBf", "qEmdO", "qFKaL", "qHSKY", "qHToU", "qIyfs", "qKAVz", "qSgGs", "qTOkq", "qUjob", "qXMym", "qYhtu", "qajDa", "qf2uo", "qfFun", "qfUFv", "qkm9M", "qr6ZY", "qtrkL", "qxXBf", "qxtza", "r1emE", "r2GV5", "r5gKL", "r7yGJ", "r91kh", "rCmw0", "rDZGy", "rFiQ6", "rHEBw", "rHHPv", "rKEEP", "rKh3k", "rLAzd", "rM8ay", "rMMDO", "rMUH5", "rSYFs", "rTRzk", "rVhD5", "rW4Al", "raEWn", "rcvcQ", "re80g", "rfhDi", "rgAHV", "rheSw", "riwe5", "rk4jd", "rksLO", "rplpA", "ruMOn", "rznWf", "rzv0Q", "s0UFQ", "s0l6m", "s1A1p", "s22PP", "s2pff", "s33ic", "s3ddz", "s6dud", "s6tXo", "s92AG", "sBaIm", "sEQE1", "sFOxf", "sL9ut", "sMx5y", "sRQ4N", "sVHG9", "sWU3v", "sY9CD", "sbO8s", "sbu9M", "scyci", "sdOV2", "sePV3", "shYpC", "shkXE", "siYBb", "sipYm", "snDQG", "snlj9", "stMHN", "svqJG", "t05Jp", "t0exG", "t2sEK", "t4g5W", "t7I5K", "t7czT", "t9WAZ", "tAOxA", "tCYBl", "tExbv", "tF1jQ", "tIigA", "tK3SQ", "tNbor", "tUYDw", "tVwYq", "tano8", "tbWT9", "tfkyQ", "tgXaj", "ti3HB", "tjMk8", "tlL9x", "tlTYh", "tlyI2", "tm247", "tpZNG", "tqw9O", "trkB7", "tumr5", "txUvH", "u06cY", "u3oZs", "u8Bw9", "uAUGW", "uAVWQ", "uCfAs", "uDYmi", "uDf8S", "uGdyY", "uGi1J", "uMIfO", "uNhaJ", "uPq37", "uTZRq", "uVZPo", "uWcE2", "uWfPy", "uXnb5", "uab3D", "uf8N6", "ulJyo", "um82X", "uo8rU", "uoqXk", "uppDY", "ur1f1", "usGlc", "usatF", "uuCnw", "v15AK", "v3fyU", "v5M6Z", "v5oYq", "vAoDv", "vC50W", "vDDfB", "vDxWV", "vKAxA", "vUCF9", "vUbfj", "vVcmG", "vW0wL", "vX5bt", "vZrLq", "vaLwj", "vb926", "vdH6d", "vgZYP", "vhZL9", "vjmHx", "vmAyM", "vn3Ya", "voSd0", "vv9hH", "w3hhE", "wBle6", "wFmtM", "wGctJ", "wHq4E", "wI8Hl", "wPDQI", "wU6EA", "wXSvO", "wZ3RJ", "wZJ6S", "wbAU4", "weQmW", "wh9Vq", "wjz4Z", "wk65P", "wlPlW", "wpvpY", "wvByb", "wx9Vw", "wxzlC", "x1QHG", "x1c7Z", "x2BcW", "x74zW", "xFIjw", "xJPrE", "xL6Ko", "xO6Oz", "xPCC3", "xQZWG", "xRQZv", "xRSmo", "xYmk8", "xcX5V", "xhrdP", "xiup4", "xklVC", "xsVeH", "xu0mo", "xuJGN", "xuKAx", "xvA0a", "xvHoE", "xwJx5", "xx3LA", "xygj5", "y0fO2", "y0saw", "y2aRU", "y3Olj", "y4wZY", "y6kdl", "y73V0", "yAEEZ", "yCcYL", "yCnyu", "yFsfv", "yHcYB", "yLtFI", "yNgbq", "yRlV3", "yUZrs", "yWbDw", "yWfux", "yaVfZ", "yahiO", "yfvY3", "ygMqX", "yhrKJ", "ym6dO", "ymQu1", "ypGeW", "yqxyC", "ytKLG", "yu9Mj", "yuaFz", "yyMro", "yzknP", "z6dKH", "z9d4v", "zDH4J", "zDhgA", "zDwA1", "zHv9K", "zK53G", "zKsz1", "zLJCU", "zLx2i", "zMVpk", "zPQ7X", "zQA6g", "zQHGo", "zRprW", "zT0tx", "zUDb5", "zUT05", "zVAdA", "zX1Gp", "zXpaC", "zXruN", "zYFOv", "zYZRw", "zZ7CI", "zZDSQ", "zcZjL", "zcbFg", "zdYH7", "zeI5A", "zezxm", "zgaxF", "zklOI", "zlLWV", "zmHIr", "zn0sh", "zqQ5W", "zqT0B", "zqhUo", "zqppT", "zshAO", "zuVwb", "zuvTB", "zx0o9", "zxvqp", "zyJF0"], "3": ["01jvC", "02F4S", "0BDFq", "0BL0C", "0OTvx", "0PYff", "0Sn2e", "0Vi3v", "0WzKz", "0ajTl", "0bMdS", "0qwOP", "0xAln", "107qp", "11VJQ", "12saM", "16Zhz", "18qkm", "1BVzI", "1HVGR", "1KneI", "1VYpf", "1j6wq", "1mKEa", "23EWv", "24DFT", "26FyW", "26jI0", "27ts1", "2BB8F", "2E7fN", "2GoDK", "2LSHC", "2VvJV", "2b2uY", "2jcIX", "2pODP", "2tdGM", "35K4x", "3Adys", "3C1p9", "3CICN", "3O6Ig", "3OVsR", "3Rrmp", "3S36U", "3aXRG", "3dcA2", "3phED", "3vgwg", "41p1z", "432bX", "46Sfg", "47jnc", "4INrj", "4NWRV", "4Q4TC", "4RcEh", "4Sqj6", "4XiZW", "4kaSd", "4nJyM", "4rvjj", "51GAZ", "51vJM", "52ucu", "531S3", "56VIG", "58PiX", "5DCsj", "5Esa6", "5NXKX", "5OxR1", "5SiSu", "5eabL", "5g4Gd", "5h7ub", "5nBfX", "5tTPC", "5xCj7", "5zCC2", "65EoX", "6Ju7n", "6MJj8", "6nnJ5", "6qTfv", "6qhuD", "6wABv", "6wD8n", "6zBmc", "7FQp9", "7JFcj", "7MrE3", "7RNrL", "7Ts11", "7YyqL", "7dIYn", "7hKSS", "7xMGS", "84YuF", "85c5U", "8AVR9", "8Dd8t", "8Er46", "8F8X2", "8GAol", "8XIhw", "8kzcY", "8mHyc", "8tHD1", "8tR7p", "9B9tC", "9Busn", "9LEJ3", "9Tfxi", "9U3Lb", "9WGnD", "9XGx3", "9bsr3", "9fXXv", "9g5cQ", "9kuVn", "9tKqi", "9z3fn", "AEZTV", "AWVPH", "AYEsm", "AboUq", "AdUUj", "Ahr0q", "AqgUS", "AsZhR", "Asgzb", "B5XXe", "BAz0j", "BBtx3", "BDCip", "BMsRO", "BSoWy", "BSuZo", "BinlL", "BlGhp", "Blfgf", "BmlAj", "Br7Ww", "BuGek", "BzX3v", "C0MFc", "C6uSt", "CA94B", "CSya6", "CZExh", "Cbgd2", "CfezJ", "Cibdy", "CpOJ7", "Csw7L", "CtQ6X", "Cy32Y", "DI8bZ", "DLQ12", "DgjZs", "E0bvR", "EA4Dc", "ETouM", "EctYd", "Ee71v", "Efgln", "F1n2r", "F4j2x", "FOkBG", "FPrzz", "FbWoI", "FubUI", "FxVcS", "G0ztr", "G2MyO", "GHiq7", "GUl1Q", "GWa0G", "GZfSP", "GaoaC", "GcZIK", "Ge4ov", "H3OYk", "HBIkh", "HCgoX", "HEYJ2", "HFaw9", "HN29p", "HR4UQ", "HUABo", "HZhgb", "Hhlr4", "HhotU", "HoMvy", "HrTAD", "HsUrw", "HttF9", "Hu7is", "HuGAL", "HzFCn", "I1gg0", "IKVXl", "IN7XH", "IT5u2", "IWs3y", "IY1iZ", "IcdDa", "IhMmI", "IhPsN", "IzpXL", "J6feN", "JTuCs", "JcKGQ", "Jn2FG", "JoYSV", "JyBnm", "K0f98", "K94Nz", "KFAaF", "KZLs0", "KaXlE", "KocQm", "KvpXA", "L47FI", "L4wBc", "LETDC", "LF3Oy", "LISrr", "LQo3r", "LV8j5", "LbFn7", "Leixu", "LfT7e", "Lodk0", "LsgC5", "Lvs4b", "M8vkI", "MP3Vv", "MQRj8", "MRAUR", "MTs6v", "MWxDh", "MgoSy", "MqagU", "MrZym", "Mte07", "Muceo", "N7aR2", "N7jvz", "NFVrd", "O3MZw", "O4UMk", "O74JR", "OQkdx", "OS5eX", "OWzxZ", "OdkvV", "OeX2g", "OlQBj", "OsyFL", "Ovt76", "P5tS9", "PBKiI", "PHs2Q", "PMtad", "PS8Pd", "PawIa", "Pis4l", "Pzf2k", "QFiBm", "QN2g7", "QWjel", "QXaZ3", "Qfq5h", "Qi0ay", "Qp69V", "QsnAT", "QyVd6", "R3Y15", "R7s7y", "RHiOp", "RMyZQ", "RSYs1", "RY7Ts", "RwNqw", "S2mUr", "S2t7N", "S92Qy", "SFDgt", "SFvSN", "SKRBC", "SKxCE", "SPlsN", "SaGeB", "SapI2", "SjpPn", "SmN36", "SpjzP", "T23Tv", "TAFvR", "TGLyQ", "TM6Ko", "TYB8t", "ToqEe", "UJeem", "UXdFS", "UYgb9", "UbzOg", "UpYzc", "Us1A0", "UsStd", "UzNk2", "V7onS", "VArD2", "VBFNl", "VIz3j", "VSMfQ", "VUzdZ", "Vk2FV", "VrPJc", "Vtdm2", "W1vUX", "W8WwQ", "WFMCa", "WFYaJ", "WLgkI", "WR0Dn", "WTcX1", "WUcC5", "WYJeU", "WjTFP", "WkwqX", "WtqLF", "X86XG", "XNvHq", "XOuzb", "XVFJG", "XWJCu", "XYkci", "XiVXC", "XjNem", "XvWWq", "XyOGe", "Y5JFh", "Y7QVj", "Y9e3Z", "YJJ38", "YMclp", "YSYMP", "YXT97", "Z2A0x", "ZbQ0G", "ZjJwf", "ZtaW9", "ZzRze", "a4Jgx", "a7j7P", "aFMKi", "aG8CB", "aL3RM", "aUhtD", "ab2Ee", "amnLD", "anBbP", "atvgm", "b19Od", "b1P1k", "b2PuQ", "b9ZRq", "bDO9x", "bUTR1", "baMvV", "bg012", "bjX35", "bpEXu", "byWuk", "bzSvz", "c3ALQ", "cDFre", "cDVq3", "cJDDc", "cK2st", "cX82r", "ch6k3", "ciCGH", "cmzh5", "cqF2F", "dJqwM", "dJvMY", "dKz4L", "dOZRx", "dZ1tm", "dedai", "dpvOo", "drels", "e2x8w", "e3Jku", "e7A4H", "eBa7D", "eDomj", "eIsKs", "eIxJi", "eNqxC", "eVT4A", "eucz0", "exGzQ", "f202n", "fCpGY", "fCxZl", "fLmNf", "fMu8I", "facqN", "fch1s", "feEuD", "frUXg", "gCHGm", "gE4iI", "gJH29", "gJK9z", "gWvQw", "gb9lW", "giPYi", "gtUN6", "gta57", "gugAe", "hBAjA", "hE7vY", "hhsB9", "hmrji", "hqccb", "iELgL", "iIXOT", "iOhGT", "iZpnc", "iaFLj", "ioegp", "is1cA", "iwiXI", "j0HJa", "j2GKC", "j2IEP", "j8FTm", "j8XXJ", "jDsZh", "jG5Gt", "jHlSy", "jMFyI", "jOaBY", "jbYD1", "jcY4l", "jeI7x", "jkD3Q", "jtWA1", "k1TsI", "kFzj8", "kIkXp", "kLhDA", "kMAfH", "kNrQo", "kQJDS", "km1AS", "krD2p", "l1wO7", "l4PfP", "lANWR", "lBvQf", "lBxXR", "lEYj3", "lVfVa", "ld1vk", "lh5cP", "m3qik", "m8bVv", "mM2I8", "mT20e", "mWmpV", "mahTs", "mkbRa", "mlIfW", "mlxl0", "mpOsS", "mpenr", "mtzFo", "n4wlT", "n8Il7", "nhAEw", "nsgcn", "nxhIc", "o21ax", "oTpJn", "oY3tE", "oa9BR", "obWEk", "odYkC", "odlMZ", "oenO0", "opceO", "ozING", "p63tN", "paNKY", "pcamZ", "pfLHO", "pgXxZ", "phuoj", "pt26K", "q1566", "q2Idf", "q3HOi", "q9Wsn", "qK5W3", "qRQu2", "qolpA", "qwUZc", "rB7oH", "rCvma", "rJv8W", "rKS8B", "rXlp7", "rXxUP", "rajzj", "riZ1K", "rlri8", "s56SA", "sC9Dy", "sIZHo", "sOLo5", "sRN4f", "sZUod", "sc5Mg", "sm9El", "suwjX", "sw26U", "t0vnu", "t2dj4", "t3dA5", "t6Izj", "tAzyc", "tGhra", "tIFuQ", "tKOh1", "tMt0w", "tMykM", "tOikd", "tTUwM", "tZVgr", "tegLb", "tgY9m", "tkFeh", "tlgot", "tpixV", "twZUz", "tyLI4", "u4iiT", "u9vJG", "u9wVe", "uAnCt", "uEJli", "uK9LM", "uLtFw", "uYuCL", "uf1lt", "ul23U", "uvhgR", "uyZqB", "v6mmb", "v8EOy", "vAXNE", "vH6f1", "vSTrI", "vU1OG", "vXCes", "vXUtu", "vdfiG", "vpaNh", "vrqtJ", "vrvtW", "vzrZx", "wAXvz", "wHhbh", "wJtKy", "wUsWZ", "wUv0x", "waWfD", "wgRph", "wiyDw", "wzaR5", "x2mTU", "x5VjI", "x8ebD", "x8zGt", "xAWlc", "xFQqV", "xajMq", "xdEvF", "xkTZP", "xrdm5", "xxMcF", "xyX7m", "y5vbo", "y83yk", "yDNNQ", "yK2VW", "yXXYa", "z5ldl", "z88da", "z8FEb", "zDuE8", "zDyYD", "zL3si", "zW027", "zb9O1"], "4": ["2TSFR", "2mLEG", "3WNMA", "62Hx2", "89xud", "Bkzrl", "BpoVK", "CUYIf", "DKgXj", "GAXQx", "GadiS", "Gp7du", "IbF0p", "JQUn5", "JqhN9", "MNOL1", "N3VzR", "PArhZ", "QCDyu", "Vq18b", "Wxkg5", "XN8iM", "YI9e0", "YuQ4J", "Zn3pi", "aYSk6", "asuaW", "evPeZ", "fn3R2", "hqMyQ", "jTkRh", "kMvku", "lH4aE", "nORis", "nanGi", "q0pLn", "sSX84", "sYSqg", "sa7Nh", "vKG7A", "yg0Nj", "ylxjN"]}}, "themes": [{"id": "interference", "number": 1, "name": "Перекрытие", "weight": 1.0}], "themeWeights": {"interference": 1.0}, "moveWeights": {"2": 30, "3": 50, "4": 20}, "puzzlesPerClick": 10, "storageKey": "usedPuzzles:mix3"};
+
+const puzzles = appData.puzzles;
+const themeWeights = appData.themeWeights;
+const moveWeights = appData.moveWeights;
+const puzzlesPerClick = appData.puzzlesPerClick;
+const storageKey = appData.storageKey;
+const lastSelectionStorageKey = storageKey + ":lastSelection:" + document.title;
+
+const themes = Object.keys(themeWeights).filter(
+    theme => (themeWeights[theme] || 0) > 0
+);
+
+// Exclude move counts without puzzles in positive-weight themes.
+const moveCounts = Object.keys(moveWeights)
+    .map(Number)
+    .filter(count => moveWeights[count] > 0
+        && themes.some(theme =>
+            (puzzles[theme]?.[count] || []).length > 0
+        )
+    );
+
+function renderSettings() {
+    const themesBody =
+        document.getElementById("themes-body");
+
+    for (const theme of appData.themes) {
+        const row = document.createElement("tr");
+
+        const numberCell =
+            document.createElement("td");
+        numberCell.textContent = theme.number;
+
+        const nameCell =
+            document.createElement("td");
+        nameCell.textContent = theme.name;
+
+        const weightCell =
+            document.createElement("td");
+        weightCell.textContent = theme.weight;
+
+        row.append(
+            numberCell,
+            nameCell,
+            weightCell
+        );
+
+        themesBody.appendChild(row);
+    }
+
+    const movesBody =
+        document.getElementById("moves-body");
+
+    for (const moveCount of moveCounts) {
+        const row = document.createElement("tr");
+
+        const countCell =
+            document.createElement("td");
+        countCell.textContent = moveCount;
+
+        const weightCell =
+            document.createElement("td");
+        weightCell.textContent =
+            moveWeights[moveCount];
+
+        row.append(
+            countCell,
+            weightCell
+        );
+
+        movesBody.appendChild(row);
+    }
+}
+
+renderSettings();
+
+if (
+    themes.length === 0
+    || moveCounts.length === 0
+) {
+    alert(
+        "По заданным условиям "
+        + "не найдено ни одной задачи"
+    );
+}
+
+let used = new Set(
+    JSON.parse(
+        localStorage.getItem(
+            storageKey
+        ) || "[]"
+    )
+);
+
+function renderLastSelection(ids) {
+    const section = document.getElementById("last-selection");
+    const list = document.getElementById("last-selection-list");
+    list.replaceChildren();
+
+    ids.forEach((id, index) => {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.textContent = "#" + id;
+        link.href = "https://lichess.org/training/" + encodeURIComponent(id);
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        item.append((index + 1) + ". ", link);
+        list.appendChild(item);
+    });
+    section.hidden = ids.length === 0;
+}
+
+let lastSelection = [];
+try {
+    const saved = JSON.parse(localStorage.getItem(lastSelectionStorageKey) || "[]");
+    if (Array.isArray(saved) && saved.every(id => typeof id === "string")) {
+        lastSelection = saved;
+    }
+} catch (_error) {
+    // A broken saved selection must not affect puzzle generation.
+}
+renderLastSelection(lastSelection);
+
+function randomItem(array) {
+    return array[
+        Math.floor(
+            Math.random()
+            * array.length
+        )
+    ];
+}
+
+// Persist quota progress separately from the existing used-ID history.
+const balanceStorageKey = storageKey + ":moveBalance";
+const balanceSignature = JSON.stringify(
+    moveCounts.map(count => [count, moveWeights[count]])
+);
+let moveUsage = Object.fromEntries(
+    moveCounts.map(count => [count, 0])
+);
+let savedBalance = null;
+try {
+    savedBalance = JSON.parse(
+        localStorage.getItem(balanceStorageKey) || "null"
+    );
+} catch (_error) {
+    // Invalid quota state must not erase used puzzle IDs.
+}
+if (
+    savedBalance?.signature === balanceSignature
+    && moveCounts.every(count =>
+        Number.isSafeInteger(savedBalance.counts?.[count])
+        && savedBalance.counts[count] >= 0
+    )
+) {
+    moveUsage = { ...savedBalance.counts };
+}
+
+// Give each slot to the move count furthest behind its ideal cumulative
+// weighted share. Break ties randomly; quotas remain integer and balanced.
+function buildMoveQuota(batchSize, previousUsage) {
+    const counts = { ...previousUsage };
+    const quota = Object.fromEntries(
+        moveCounts.map(count => [count, 0])
+    );
+    const totalWeight = moveCounts.reduce(
+        (sum, count) => sum + moveWeights[count], 0
+    );
+    let total = moveCounts.reduce(
+        (sum, count) => sum + counts[count], 0
+    );
+
+    for (let slot = 0; slot < batchSize; slot++) {
+        const nextTotal = total + 1;
+        const deficits = moveCounts.map(count => ({
+            count,
+            value: nextTotal * moveWeights[count] / totalWeight
+                - counts[count]
+        }));
+        const largest = Math.max(
+            ...deficits.map(item => item.value)
+        );
+        const candidates = deficits.filter(
+            item => Math.abs(item.value - largest) < 1e-9
+        );
+        const chosen = randomItem(candidates).count;
+        counts[chosen]++;
+        quota[chosen]++;
+        total++;
+    }
+    return quota;
+}
+
+function shuffleMoveQuota(quota) {
+    const order = [];
+    for (const count of moveCounts) {
+        for (let i = 0; i < quota[count]; i++) {
+            order.push(count);
+        }
+    }
+    // Fisher-Yates: fixed counts, unpredictable positions.
+    for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+}
+
+function getAvailableBuckets(moveCount, selectedThisClick) {
+    const buckets = [];
+    for (const theme of themes) {
+        const available = (puzzles[theme]?.[moveCount] || [])
+            .filter(id => !used.has(id) && !selectedThisClick.has(id));
+        if (available.length > 0) {
+            buckets.push({
+                theme,
+                available,
+                weight: themeWeights[theme]
+            });
+        }
+    }
+    return buckets;
+}
+
+function weightedRandomBucket(buckets) {
+    const totalWeight = buckets.reduce(
+        (sum, bucket) => sum + bucket.weight, 0
+    );
+    let value = Math.random() * totalWeight;
+    for (const bucket of buckets) {
+        value -= bucket.weight;
+        if (value < 0) {
+            return bucket;
+        }
+    }
+    return buckets[buckets.length - 1];
+}
+
+function selectNextPuzzle(moveCount, selectedThisClick) {
+    let buckets = getAvailableBuckets(moveCount, selectedThisClick);
+    if (buckets.length === 0) {
+        // Restart the used-ID cycle when the required move count runs out.
+        // IDs already selected in this click still cannot repeat.
+        const hasCandidate = themes.some(theme =>
+            (puzzles[theme]?.[moveCount] || [])
+                .some(id => !selectedThisClick.has(id))
+        );
+        if (!hasCandidate) {
+            return null;
+        }
+        used.clear();
+        buckets = getAvailableBuckets(moveCount, selectedThisClick);
+    }
+    if (buckets.length === 0) {
+        return null;
+    }
+    const bucket = weightedRandomBucket(buckets);
+    const id = randomItem(bucket.available);
+    used.add(id);
+    selectedThisClick.add(id);
+    return id;
+}
+
+function nextPuzzles() {
+    if (themes.length === 0 || moveCounts.length === 0) {
+        return;
+    }
+    const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
+    const order = shuffleMoveQuota(quota);
+    const selectedIds = [];
+    const selectedThisClick = new Set();
+
+    for (const moveCount of order) {
+        const id = selectNextPuzzle(moveCount, selectedThisClick);
+        if (id === null) {
+            // Do not silently replace a missing move count with another.
+            break;
+        }
+        selectedIds.push(id);
+        moveUsage[moveCount]++;
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify([...used]));
+    localStorage.setItem(
+        balanceStorageKey,
+        JSON.stringify({ signature: balanceSignature, counts: moveUsage })
+    );
+
+    // Show the exact IDs before opening tabs; visible even if pop-ups are blocked.
+    localStorage.setItem(lastSelectionStorageKey, JSON.stringify(selectedIds));
+    renderLastSelection(selectedIds);
+
+    if (selectedIds.length < puzzlesPerClick) {
+        alert(
+            "Недостаточно уникальных задач для заданных квот "
+            + "по количеству ходов. Открыты доступные задачи."
+        );
+    }
+    for (const id of selectedIds) {
+        window.open("https://lichess.org/training/" + id, "_blank");
+    }
+}
+</script>
+
+</body>
+</html>
