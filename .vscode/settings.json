@@ -2,7 +2,7 @@
 {
   "window.title": "♞ Chess Mixes ♞${separator}${activeEditorShort}",
 
-  "workbench.colorTheme": "Default Light Modern",
+  "workbench.colorTheme": "Light Modern",
 
   "git.decorations.enabled": true,
   "explorer.decorations.colors": true,

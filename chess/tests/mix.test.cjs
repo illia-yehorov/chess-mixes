@@ -36,7 +36,10 @@ function setup(store, weights = { 3: 15, 4: 5 }, themeWeights = { a: 1, b: 1 }) 
         themeWeights,
         moveWeights: weights,
         puzzlesPerClick: 10,
-        storageKey: "usedPuzzles:test"
+        storageKey: "usedPuzzles:test",
+        validationData: {},
+        ratingMin: 1000,
+        ratingMax: 1400
     };
     const opened = [];
     const elements = new Map();
@@ -174,4 +177,113 @@ test("last batch stays visible on reload and changes on the next click", () => {
         .map(item => item.children[1].textContent.slice(1));
     assert.deepEqual(newLinks, reloaded.opened);
     assert.equal(new Set([...previousLinks, ...newLinks]).size, 20);
+});
+
+
+test("API comparison accepts a changed rating inside the configured range", () => {
+    const page = setup(new Map());
+    vm.runInContext(`appData.validationData = { "a-3-0": [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"] }`, page.context);
+    // comparePuzzle reads the original validationData reference, so exercise
+    // the comparison by setting it through the VM lexical binding.
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`appData.ratingMin = 1000; appData.ratingMax = 1400`, page.context);
+    const check = vm.runInContext(`comparePuzzle("a-3-0", "a", {
+        game: { id: "ABCDEFGH" },
+        puzzle: { id: "a-3-0", rating: 1200, lastMove: "e2e4",
+            solution: ["e7e5", "g1f3"], themes: ["a", "short"] }
+    })`, page.context);
+    assert.equal(check.status, "ok");
+    assert.match(check.message, /1100.*1200/);
+});
+
+test("API comparison rejects wrong solutions, themes and ratings", () => {
+    const page = setup(new Map());
+    vm.runInContext(`appData.validationData = { "a-3-0": [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"] }`, page.context);
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`appData.ratingMin = 1000; appData.ratingMax = 1400`, page.context);
+    const check = vm.runInContext(`comparePuzzle("a-3-0", "a", {
+        game: { id: "ABCDEFGH" },
+        puzzle: { id: "a-3-0", rating: 2100, lastMove: "e2e4",
+            solution: ["d7d5"], themes: ["b"] }
+    })`, page.context);
+    assert.equal(check.status, "invalid");
+    assert.match(check.message, /решение/);
+    assert.match(check.message, /темы a/);
+    assert.match(check.message, /вне диапазона/);
+});
+
+test("batch verification checks one API puzzle and shows its result", async () => {
+    const page = setup(new Map());
+    page.context.AbortController = AbortController;
+    const requested = [];
+    page.context.fetch = async (url, options) => {
+        requested.push(url);
+        assert.equal(options.credentials, "omit");
+        return {
+            status: 200, ok: true, json: async () => ({
+                game: { id: "ABCDEFGH" },
+                puzzle: {
+                    id: "a-3-0", rating: 1190, lastMove: "e2e4",
+                    solution: ["e7e5", "g1f3"], themes: ["a"]
+                }
+            })
+        };
+    };
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    vm.runInContext(`renderLastSelection(["a-3-0"])`, page.context);
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.deepEqual(requested, ["https://lichess.org/api/puzzle/a-3-0"]);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Подходит; рейтинг 1100 → 1190/
+    );
+    assert.match(page.elements.get("integrity-summary").textContent, /1 подходят/);
+});
+
+test("missing API puzzle is distinct from a network error", async () => {
+    const page = setup(new Map());
+    page.context.AbortController = AbortController;
+    vm.runInContext(`validationData["a-3-0"] = [1100, "", "e2e4", "e7e5"]`, page.context);
+    vm.runInContext(`renderLastSelection(["a-3-0"])`, page.context);
+    page.context.fetch = async () => ({ status: 404, ok: false });
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Задача недоступна/
+    );
+    page.context.fetch = async () => { throw new TypeError("CORS"); };
+    await vm.runInContext(`validateSelectedPuzzles([{id: "a-3-0", theme: "a"}])`, page.context);
+    assert.match(
+        page.elements.get("last-selection-list").children[0].children[2].textContent,
+        /Нет ответа API/
+    );
+});
+
+
+test("generic mate theme is verified through Lichess mateInN tags", () => {
+    const page = setup(new Map());
+    vm.runInContext(`validationData["a-3-0"] = [1100, "ABCDEFGH", "e2e4", "e7e5 g1f3"]`, page.context);
+    const basePuzzle = {
+        id: "a-3-0", rating: 1100, lastMove: "e2e4",
+        solution: ["e7e5", "g1f3"]
+    };
+    for (const tag of ["mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5"]) {
+        const result = vm.runInContext(`comparePuzzle("a-3-0", "mate", ${JSON.stringify({
+            game: { id: "ABCDEFGH" },
+            puzzle: { ...basePuzzle, themes: ["short", tag] }
+        })})`, page.context);
+        assert.equal(result.status, "ok", "Expected valid mate for " + tag);
+    }
+    const missingMate = vm.runInContext(`comparePuzzle("a-3-0", "mate", ${JSON.stringify({
+        game: { id: "ABCDEFGH" },
+        puzzle: { ...basePuzzle, themes: ["backRankMate", "short"] }
+    })})`, page.context);
+    assert.equal(missingMate.status, "invalid");
+    assert.match(missingMate.message, /нет ожидаемой темы mate/);
+    const wrongSpecificTheme = vm.runInContext(`comparePuzzle("a-3-0", "backRankMate", ${JSON.stringify({
+        game: { id: "ABCDEFGH" },
+        puzzle: { ...basePuzzle, themes: ["mateIn2", "short"] }
+    })})`, page.context);
+    assert.equal(wrongSpecificTheme.status, "invalid");
+    assert.match(wrongSpecificTheme.message, /нет ожидаемой темы backRankMate/);
 });
