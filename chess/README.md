@@ -10,22 +10,25 @@ From the repository root in Windows Command Prompt:
 chess-generate 1
 chess-generate 2
 chess-generate 3
+chess-generate 4
 ```
 
 Mix numbers:
 
-- `1` -> `basic`
-- `2` -> `deflection-attraction`
-- `3` -> `mix3` (Перекрытие / `interference`; rating 900–1200; 2–4 moves)
+- `1` -> `1-basic` (Основная солянка)
+- `2` -> `2-deflection-attraction` (Завлечение и отвлечение)
+- `3` -> `3-interference` (Перекрытие / `interference`; rating 900–1200; 2–4 moves)
+- `4` -> `4-clearance` (Освобождение линии или поля / `clearance`; rating 900–1200; 2–4 moves)
 
 If the number is missing or unknown, the batch file prints the available mixes.
 
 ## Direct generator usage
 
 ```text
-python chess/generate_mix.py basic
-python chess/generate_mix.py deflection-attraction
-python chess/generate_mix.py mix3
+python chess/generate_mix.py 1-basic
+python chess/generate_mix.py 2-deflection-attraction
+python chess/generate_mix.py 3-interference
+python chess/generate_mix.py 4-clearance
 ```
 
 Each mix is defined by a TOML file in `chess/configs/`. To add another mix, create another TOML config. Add a numeric mapping to `chess-generate.bat` if you want to launch it by number.
@@ -68,7 +71,7 @@ Example:
 filename = "mix1 {date} R{rating_min}-{rating_max} M{moves}.html"
 ```
 
-The default filename patterns begin with `mix1`, `mix2`, or `mix3`, followed by the date (for example, `mix1 26-10-27 R900-1200 M2-4.html`), so files of the same mix sort together.
+The default filename patterns begin with `mix1`, `mix2`, `mix3`, or `mix4`, followed by the date (for example, `mix1 26-10-27 R900-1200 M2-4.html`), so files of the same mix sort together.
 
 The generator expects `lichess_db_puzzle.csv.zst` in the `chess` directory by default. Published HTML files are picked up by the Pages catalog automatically when merged to `main`.
 
@@ -84,9 +87,10 @@ chess-mixes/
 ├── chess/
 │   ├── generate_mix.py
 │   ├── configs/
-│   │   ├── basic.toml
-│   │   ├── deflection-attraction.toml
-│   │   └── mix3.toml
+│   │   ├── 1-basic.toml
+│   │   ├── 2-deflection-attraction.toml
+│   │   ├── 3-interference.toml
+│   │   └── 4-clearance.toml
 │   ├── GENERATION_RULES.md
 │   ├── templates/
 │   │   └── mix.html

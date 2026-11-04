@@ -1,0 +1,32 @@
+name = "Освобождение линии или поля"
+source = "lichess_db_puzzle.csv.zst"
+template = "mix.html"
+
+puzzles_per_click = 10
+popularity_min = 70
+min_plays = 50
+
+[rating]
+min = 900
+max = 1200
+
+[moves]
+min = 2
+max = 4
+
+[move_weights]
+"2" = 30
+"3" = 50
+"4" = 20
+
+[output]
+filename = "mix4 {date} R{rating_min}-{rating_max} M{moves}.html"
+
+[page]
+title = "mix4 R{rating_min}-{rating_max} M{moves}"
+heading = "Лёха & Папа — шахматная солянка"
+
+[[themes]]
+id = "clearance"
+name = "Освобождение линии или поля"
+weight = 1.0

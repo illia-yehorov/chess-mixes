@@ -12,14 +12,16 @@ Static Lichess puzzle mixes generated from TOML configurations and published wit
 chess-generate 1
 chess-generate 2
 chess-generate 3
+chess-generate 4
 ```
 
 The same Python generator can run without the batch file:
 
 ```sh
-python chess/generate_mix.py basic
-python chess/generate_mix.py deflection-attraction
-python chess/generate_mix.py mix3
+python chess/generate_mix.py 1-basic
+python chess/generate_mix.py 2-deflection-attraction
+python chess/generate_mix.py 3-interference
+python chess/generate_mix.py 4-clearance
 ```
 
 Generated HTML files appear in `site/mixes/`. The generator retains the existing puzzle filters, theme and move weights, selection logic, recent IDs, and browser localStorage history.

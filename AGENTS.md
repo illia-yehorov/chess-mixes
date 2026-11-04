@@ -16,7 +16,7 @@ These instructions apply to AI agents working in this repository. Read this file
 
 ## Chess Mixes project
 
-- Preserve existing Python generator behavior, TOML configuration support, HTML/JavaScript puzzle selection, localStorage history, and the familiar `chess-generate.bat 1|2|3` interface.
+- Preserve existing Python generator behavior, TOML configuration support, HTML/JavaScript puzzle selection, localStorage history, and the familiar `chess-generate.bat 1|2|3|4` interface.
 - Keep the large `chess/lichess_db_puzzle.csv.zst` database outside Git.
 - Treat `site/mixes/` as the location for newly generated publishable HTML files. Never reintroduce historical generated HTML as part of migration or maintenance.
 - Keep GitHub Pages publishing separate from future puzzle-integrity verification. Do not auto-regenerate mixes only because Lichess updated its database.
