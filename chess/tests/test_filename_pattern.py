@@ -12,6 +12,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from generate_mix import (
     build_pattern_values, format_pattern, print_statistics, render_template,
+    validate_config,
 )
 
 
@@ -45,9 +46,10 @@ class FilenamePatternTests(unittest.TestCase):
     def test_all_mix_configs_put_date_after_mix_name(self) -> None:
         config_dir = Path(__file__).resolve().parents[1] / "configs"
         patterns = {
-            "basic.toml": "mix1 {date} R{rating_min}-{rating_max} M{moves}.html",
-            "deflection-attraction.toml": "mix2 {date} R{rating_min}-{rating_max} M{moves}.html",
-            "mix3.toml": "mix3 {date} R{rating_min}-{rating_max} M{moves}.html",
+            "1-basic.toml": "mix1 {date} R{rating_min}-{rating_max} M{moves}.html",
+            "2-deflection-attraction.toml": "mix2 {date} R{rating_min}-{rating_max} M{moves}.html",
+            "3-interference.toml": "mix3 {date} R{rating_min}-{rating_max} M{moves}.html",
+            "4-clearance.toml": "mix4 {date} R{rating_min}-{rating_max} M{moves}.html",
         }
         for filename, expected in patterns.items():
             with self.subTest(config=filename):
@@ -55,14 +57,40 @@ class FilenamePatternTests(unittest.TestCase):
                     mix_config = tomllib.load(file)
                 self.assertEqual(mix_config["output"]["filename"], expected)
 
+    def test_mix_numbers_match_config_names_and_batch(self) -> None:
+        chess_dir = Path(__file__).resolve().parents[1]
+        batch = (chess_dir.parent / "chess-generate.bat").read_text(
+            encoding="utf-8"
+        )
+        for number, stem in (
+            (1, "1-basic"),
+            (2, "2-deflection-attraction"),
+            (3, "3-interference"),
+            (4, "4-clearance"),
+        ):
+            with self.subTest(mix=number):
+                self.assertIn(
+                    f'if "%MIX%"=="{number}" set "CONFIG={stem}"',
+                    batch,
+                )
+                with (chess_dir / "configs" / f"{stem}.toml").open("rb") as file:
+                    config = tomllib.load(file)
+                validate_config(config)
+                if number == 4:
+                    self.assertEqual(
+                        [theme["id"] for theme in config["themes"]],
+                        ["clearance"],
+                    )
+
     def test_browser_title_uses_page_title_not_visible_heading(self) -> None:
         chess_dir = Path(__file__).resolve().parents[1]
         template_path = chess_dir / "templates" / "mix.html"
 
         for config_name in (
-            "basic.toml",
-            "deflection-attraction.toml",
-            "mix3.toml",
+            "1-basic.toml",
+            "2-deflection-attraction.toml",
+            "3-interference.toml",
+            "4-clearance.toml",
         ):
             with self.subTest(config=config_name):
                 with (chess_dir / "configs" / config_name).open("rb") as file:
