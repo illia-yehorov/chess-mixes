@@ -9,11 +9,18 @@ Static Lichess puzzle mixes generated from TOML configurations and published wit
 3. From the repository root, run one of:
 
 ```bat
+chess-generate
 chess-generate 1
 chess-generate 2
 chess-generate 3
 chess-generate 4
 ```
+
+Run `chess-generate` **without arguments** to regenerate all numbered mixes in filename order. `0` is not a batch argument. The shared `0-defaults.toml` is skipped, and the batch stops on the first failed generation.
+
+All mixes inherit common settings from `chess/configs/0-defaults.toml`. The default per-theme limit is `max_puzzles_per_theme = 1000` (0 disables the limit), so weights 20/50/30 target 200/500/300 tasks for 2/3/4 moves. The generator filters by rating, popularity, number of attempts and move length, then selects candidates by higher `Popularity`, lower `RatingDeviation` and higher `NbPlays`. Missing tasks in one length redistribute their slots to the others. The HTML still picks randomly from selected IDs, and logs show found/selected counts for every theme and move length.
+
+For global changes, edit `0-defaults.toml`; a numbered mix can override individual values, including specific nested values such as `[rating].min` or `[move_weights]."2"`. Common `source`, `template`, `puzzles_per_click`, `popularity_min`, `min_plays`, ratings, moves and page heading live in the shared config. Mix-specific names, themes, output filenames and tab titles stay in numbered configs. The shared file is **not** a standalone mix. For examples and merge rules, see [chess/README.md](chess/README.md) and [generation rules](chess/GENERATION_RULES.md).
 
 The same Python generator can run without the batch file:
 
@@ -57,7 +64,7 @@ chess-mixes/
 │   ├── ci.yml              # Generator and HTML selection tests
 │   └── pages.yml           # Build and deploy static site
 ├── chess/
-│   ├── configs/            # TOML mix definitions
+│   ├── configs/            # 0-defaults.toml plus numbered TOML mixes
 │   ├── templates/          # Self-contained HTML template
 │   ├── tests/              # Python and JavaScript regression tests
 │   ├── generate_mix.py
