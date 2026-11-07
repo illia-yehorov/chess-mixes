@@ -1,25 +1,8 @@
 name = "Основная солянка"
-source = "lichess_db_puzzle.csv.zst"
-template = "mix.html"
 
-puzzles_per_click = 10
-max_puzzles_per_theme = 5000  # Maximum tasks per theme; 0 = unlimited
-popularity_min = 70
-min_plays = 50
-
-[rating]
-min = 1000
-max = 1400
-
-[moves]
-min = 2
-max = 4
-
+# Keep only values specific to this mix.
 [move_weights]
 "1" = 10
-"2" = 20
-"3" = 50
-"4" = 30
 
 # Filename placeholders:
 # {name}, {rating_min}, {rating_max}, {theme_numbers},
@@ -33,7 +16,6 @@ filename = "mix1 {date} R{rating_min}-{rating_max} M{moves}.html"
 
 [page]
 title = "mix1 R{rating_min}-{rating_max} M{moves}"
-heading = "Лёха & Папа — шахматная солянка"
 
 [[themes]]
 id = "hangingPiece"

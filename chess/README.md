@@ -7,7 +7,7 @@ One Python generator is shared by all puzzle mixes.
 From the repository root in Windows Command Prompt:
 
 ```bat
-chess-generate 0
+chess-generate
 chess-generate 1
 chess-generate 2
 chess-generate 3
@@ -16,7 +16,7 @@ chess-generate 4
 
 Mix numbers:
 
-- `0` -> all configs in `chess/configs/`, sorted by filename; stop if any generator fails
+- **No argument** -> generate all numbered mixes, sorted by filename; stop if any generator fails. The shared `0-defaults.toml` is skipped, and `0` is not a valid batch argument.
 - `1` -> `1-basic` (Основная солянка)
 - `2` -> `2-deflection-attraction` (Завлечение и отвлечение)
 - `3` -> `3-interference` (Перекрытие / `interference`; rating 900–1200; 2–4 moves)
@@ -33,11 +33,52 @@ python chess/generate_mix.py 3-interference
 python chess/generate_mix.py 4-clearance
 ```
 
+## Shared defaults and per-mix overrides
+
+`chess/configs/0-defaults.toml` holds settings inherited by **every** numbered mix:
+
+```toml
+name = "Шахматная солянка"
+source = "lichess_db_puzzle.csv.zst"
+template = "mix.html"
+puzzles_per_click = 10
+max_puzzles_per_theme = 1000
+popularity_min = 70
+min_plays = 50
+
+[rating]
+min = 1000
+max = 1400
+
+[moves]
+min = 2
+max = 4
+
+[move_weights]
+"2" = 20
+"3" = 50
+"4" = 30
+
+[page]
+heading = "Лёха & Папа — шахматная солянка"
+```
+
+Each numbered config contains only differences: its **name**, themes, filename and tab title, plus any overrides. `name` has a generic shared default, but current mixes give it a specific value. For example, any new mix can override **only** the minimum rating (while keeping the shared maximum):
+
+```toml
+[rating]
+min = 900
+```
+
+Other `[rating]` fields still inherit the shared values. Nested tables (`rating`, `moves`, `move_weights`, `page`) are merged **by key**; a value in the numbered file takes priority. For example, a `[move_weights]` override of `"2" = 30` keeps the common values for 3 and 4 moves. To disable an inherited weight explicitly, set it to `0`. Arrays such as `[[themes]]` are **replaced in full**, not merged item by item. The `[output].filename`, `[page].title` and `[[themes]]` fields remain unique to each mix.
+
+The shared `0-defaults.toml` **is not a mix**: direct generation from it is rejected. `chess-generate` with no arguments generates all actual mixes, and individual numbers 1–4 still work. A bare `0` is invalid.
+
 ## Per-theme task limit and quality selection
 
-Every mix config includes `max_puzzles_per_theme = 5000`. It limits the **number of IDs for each theme**, not the total across all themes. Use a different non-negative integer to change the limit or `0` for unlimited tasks; omitted keys also default to 5000. Existing `popularity_min`, `min_plays`, the rating range and move-length filters still apply before ranking.
+The shared default `max_puzzles_per_theme = 1000` limits the **number of IDs for each theme**, not the total across all themes. Individual mix configs can override it. Use any non-negative integer, or `0` to disable the puzzle limit (unrelated to batch arguments). Existing `popularity_min`, `min_plays`, the rating range and move-length filters still apply before ranking.
 
-Eligible tasks are ranked by `Popularity` (higher first), `RatingDeviation` (lower first), then `NbPlays` (higher first), with the puzzle ID as a deterministic tie-breaker. A single streaming pass keeps no more than the configured limit per theme **and move count** while counting all eligible rows. Then the final per-theme limit is divided proportionally among active `move_weights` using integer quotas; any shortage for a move count is redistributed to other lengths. For 5000 slots and weights `2 = 20, 3 = 50, 4 = 30`, the targets are 1000/2500/1500 respectively when enough candidates exist.
+Eligible tasks are ranked by `Popularity` (higher first), `RatingDeviation` (lower first), then `NbPlays` (higher first), with the puzzle ID as a deterministic tie-breaker. A single streaming pass keeps no more than the configured limit per theme **and move count** while counting all eligible rows. Then the final per-theme limit is divided proportionally among active `move_weights` using integer quotas; any shortage for a move count is redistributed to other lengths. For 1000 slots and weights `2 = 20, 3 = 50, 4 = 30`, the targets are 200/500/300 respectively when enough candidates exist.
 
 The selected IDs (and only their Lichess API validation snapshots) are saved into HTML. JavaScript still picks **random, non-repeating tasks** from those IDs when you click. The terminal output reports how many eligible tasks were **found** and how many were **selected** for every theme and move count, so you can check quotas. This changes only newly generated HTML; existing published files stay unchanged until regenerated and published via PR.
 
@@ -97,6 +138,7 @@ chess-mixes/
 ├── chess/
 │   ├── generate_mix.py
 │   ├── configs/
+│   │   ├── 0-defaults.toml       # Common inherited settings
 │   │   ├── 1-basic.toml
 │   │   ├── 2-deflection-attraction.toml
 │   │   ├── 3-interference.toml

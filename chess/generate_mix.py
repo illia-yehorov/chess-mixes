@@ -19,7 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "configs"
 TEMPLATE_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR.parent / "site" / "mixes"
-DEFAULT_MAX_PUZZLES_PER_THEME = 5000
+DEFAULT_CONFIG_PATH = CONFIG_DIR / "0-defaults.toml"
+DEFAULT_MAX_PUZZLES_PER_THEME = 1000
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,13 +49,36 @@ def resolve_config_path(value: str) -> Path:
     return CONFIG_DIR / name
 
 
+def merge_config(defaults: dict, overrides: dict) -> dict:
+    """Override individual fields; nested TOML tables merge recursively.
+
+    Lists such as [[themes]] replace the complete inherited list.
+    """
+    merged = defaults.copy()
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = merge_config(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def load_config(path: Path) -> dict:
+    if path.resolve() == DEFAULT_CONFIG_PATH.resolve():
+        raise RuntimeError(
+            "0-defaults.toml contains shared settings, not a mix"
+        )
     if not path.is_file():
         raise RuntimeError(f"Config file not found: {path}")
+    if not DEFAULT_CONFIG_PATH.is_file():
+        raise RuntimeError(f"Shared config file not found: {DEFAULT_CONFIG_PATH}")
 
+    with DEFAULT_CONFIG_PATH.open("rb") as file:
+        defaults = tomllib.load(file)
     with path.open("rb") as file:
-        config = tomllib.load(file)
+        overrides = tomllib.load(file)
 
+    config = merge_config(defaults, overrides)
     validate_config(config)
     return config
 

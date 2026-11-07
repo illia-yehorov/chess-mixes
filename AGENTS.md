@@ -17,6 +17,7 @@ These instructions apply to AI agents working in this repository. Read this file
 ## Chess Mixes project
 
 - Preserve existing Python generator behavior, TOML configuration support, HTML/JavaScript puzzle selection, localStorage history, and the familiar `chess-generate.bat 1|2|3|4` interface.
+- Shared settings are in `chess/configs/0-defaults.toml`, which is **not** a mix. Individual TOML files override shared settings; nested tables merge by key. `chess-generate.bat` without arguments builds all mixes, skips `0-defaults.toml`, and `0` is not a valid batch argument.
 - Keep the large `chess/lichess_db_puzzle.csv.zst` database outside Git.
 - Treat `site/mixes/` as the location for newly generated publishable HTML files. Never reintroduce historical generated HTML as part of migration or maintenance.
 - Keep GitHub Pages publishing separate from future puzzle-integrity verification. Do not auto-regenerate mixes only because Lichess updated its database.

@@ -11,8 +11,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from generate_mix import (
-    build_pattern_values, format_pattern, print_statistics, render_template,
-    validate_config,
+    build_pattern_values, format_pattern, load_config, print_statistics,
+    render_template,
 )
 
 
@@ -62,8 +62,10 @@ class FilenamePatternTests(unittest.TestCase):
         batch = (chess_dir.parent / "chess-generate.bat").read_text(
             encoding="utf-8"
         )
-        self.assertIn('if "%MIX%"=="0" goto :all', batch)
+        self.assertIn('if "%MIX%"=="" goto :all', batch)
+        self.assertNotIn('if "%MIX%"=="0"', batch)
         self.assertIn('/on "%~dp0chess\\configs\\*.toml"', batch)
+        self.assertIn('if /I not "%%~nF"=="0-defaults"', batch)
         self.assertIn("if errorlevel 1 exit /b 1", batch)
         for number, stem in (
             (1, "1-basic"),
@@ -76,10 +78,8 @@ class FilenamePatternTests(unittest.TestCase):
                     f'if "%MIX%"=="{number}" set "CONFIG={stem}"',
                     batch,
                 )
-                with (chess_dir / "configs" / f"{stem}.toml").open("rb") as file:
-                    config = tomllib.load(file)
-                validate_config(config)
-                self.assertEqual(config['max_puzzles_per_theme'], 5000)
+                config = load_config(chess_dir / "configs" / f"{stem}.toml")
+                self.assertEqual(config["max_puzzles_per_theme"], 1000)
                 if number == 4:
                     self.assertEqual(
                         [theme["id"] for theme in config["themes"]],
@@ -97,8 +97,7 @@ class FilenamePatternTests(unittest.TestCase):
             "4-clearance.toml",
         ):
             with self.subTest(config=config_name):
-                with (chess_dir / "configs" / config_name).open("rb") as file:
-                    config = tomllib.load(file)
+                config = load_config(chess_dir / "configs" / config_name)
                 moves_min = config["moves"]["min"]
                 moves_max = config["moves"]["max"]
                 moves = (
