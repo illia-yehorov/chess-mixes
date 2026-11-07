@@ -34,14 +34,18 @@ class SharedConfigTests(unittest.TestCase):
                 self.assertNotIn("puzzles_per_click", raw)
                 self.assertNotIn("popularity_min", raw)
                 self.assertNotIn("min_plays", raw)
+                self.assertNotIn("quality_weights", raw)
 
                 config = load_config(path)
                 self.assertEqual(config["source"], "lichess_db_puzzle.csv.zst")
                 self.assertEqual(config["template"], "mix.html")
                 self.assertEqual(config["puzzles_per_click"], 10)
                 self.assertEqual(config["max_puzzles_per_theme"], 1000)
-                self.assertEqual(config["popularity_min"], 70)
-                self.assertEqual(config["min_plays"], 50)
+                self.assertEqual(config["popularity_min"], 85)
+                self.assertEqual(config["min_plays"], 200)
+                self.assertEqual(config["quality_weights"], {
+                    "popularity": 80, "plays": 15, "rating_deviation": 5
+                })
                 self.assertEqual(config["moves"], {"min": 2, "max": 4})
                 self.assertEqual(config["page"]["heading"],
                                  "Лёха & Папа — шахматная солянка")
@@ -84,6 +88,7 @@ class SharedConfigTests(unittest.TestCase):
                 'max_puzzles_per_theme = 25\n'
                 '[rating]\nmax = 1250\n'
                 '[move_weights]\n"3" = 0\n'
+                '[quality_weights]\nplays = 25\n'
                 '[page]\ntitle = "Custom page"\n'
                 '[output]\nfilename = "custom.html"\n'
                 '[[themes]]\nid = "fork"\nname = "Fork"\nweight = 1\n',
@@ -97,6 +102,9 @@ class SharedConfigTests(unittest.TestCase):
             self.assertEqual(merged["rating"], {"min": 1000, "max": 1250})
             self.assertEqual(merged["move_weights"],
                              {"2": 20, "3": 0, "4": 30})
+            self.assertEqual(merged["quality_weights"], {
+                "popularity": 80, "plays": 25, "rating_deviation": 5
+            })
             self.assertEqual(merged["page"]["title"], "Custom page")
             self.assertEqual(merged["page"]["heading"],
                              "Лёха & Папа — шахматная солянка")
@@ -105,7 +113,7 @@ class SharedConfigTests(unittest.TestCase):
         content = (CONFIG_DIR / "0-defaults.toml").read_text(encoding="utf-8")
         updated = content.replace("max_puzzles_per_theme = 1000",
                                   "max_puzzles_per_theme = 77").replace(
-                                      "min_plays = 50", "min_plays = 120")
+                                      "min_plays = 200", "min_plays = 300")
         with TemporaryDirectory() as temp:
             default_path = Path(temp) / "0-defaults.toml"
             default_path.write_text(updated, encoding="utf-8")
@@ -113,7 +121,7 @@ class SharedConfigTests(unittest.TestCase):
                 for filename in MIXES:
                     merged = load_config(CONFIG_DIR / filename)
                     self.assertEqual(merged["max_puzzles_per_theme"], 77)
-                    self.assertEqual(merged["min_plays"], 120)
+                    self.assertEqual(merged["min_plays"], 300)
 
     def test_theme_array_is_replaced_not_extended(self):
         shared = {"themes": [{"id": "fork"}, {"id": "pin"}],

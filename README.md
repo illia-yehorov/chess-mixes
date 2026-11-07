@@ -18,9 +18,9 @@ chess-generate 4
 
 Run `chess-generate` **without arguments** to regenerate all numbered mixes in filename order. `0` is not a batch argument. The shared `0-defaults.toml` is skipped, and the batch stops on the first failed generation.
 
-All mixes inherit common settings from `chess/configs/0-defaults.toml`. The default per-theme limit is `max_puzzles_per_theme = 1000` (0 disables the limit), so weights 20/50/30 target 200/500/300 tasks for 2/3/4 moves. The generator filters by rating, popularity, number of attempts and move length, then selects candidates by higher `Popularity`, lower `RatingDeviation` and higher `NbPlays`. Missing tasks in one length redistribute their slots to the others. The HTML still picks randomly from selected IDs, and logs show found/selected counts for every theme and move length.
+All mixes inherit common settings from `chess/configs/0-defaults.toml`. The default per-theme limit is `max_puzzles_per_theme = 1000` (0 disables the limit), so weights 20/50/30 target 200/500/300 tasks for 2/3/4 moves. The generator filters by rating, popularity, number of attempts and move length, then ranks candidates by a combined **Quality Score (0–100)**: 80% Popularity, 15% attempt count (log-scaled, saturated at 2,000), and 5% low RatingDeviation (best at 0, no bonus from 200 onwards). Weights live in `[quality_weights]` in shared TOML and are automatically normalized. Default safety floors are `popularity_min = 85` and `min_plays = 200`, even when a theme cannot fill all 1,000 slots. Quality Score is a heuristic, not chess-engine analysis. Missing tasks in one length redistribute their slots to the others. The HTML still picks randomly from selected IDs, and logs show found/selected counts for every theme and move length.
 
-For global changes, edit `0-defaults.toml`; a numbered mix can override individual values, including specific nested values such as `[rating].min` or `[move_weights]."2"`. Common `source`, `template`, `puzzles_per_click`, `popularity_min`, `min_plays`, ratings, moves and page heading live in the shared config. Mix-specific names, themes, output filenames and tab titles stay in numbered configs. The shared file is **not** a standalone mix. For examples and merge rules, see [chess/README.md](chess/README.md) and [generation rules](chess/GENERATION_RULES.md).
+For global changes, edit `0-defaults.toml`; a numbered mix can override individual values, including specific nested values such as `[rating].min` or `[move_weights]."2"`. Common `source`, `template`, `puzzles_per_click`, `popularity_min`, `min_plays`, `quality_weights`, ratings, moves and page heading live in the shared config. Mix-specific names, themes, output filenames and tab titles stay in numbered configs. The shared file is **not** a standalone mix. For examples and merge rules, see [chess/README.md](chess/README.md) and [generation rules](chess/GENERATION_RULES.md).
 
 The same Python generator can run without the batch file:
 
@@ -31,7 +31,7 @@ python chess/generate_mix.py 3-interference
 python chess/generate_mix.py 4-clearance
 ```
 
-Generated HTML files appear in `site/mixes/`. The generator retains the existing puzzle filters, theme and move weights, selection logic, recent IDs, and browser localStorage history.
+Generated HTML files appear in `site/mixes/`. The generator keeps theme/move quotas, recent IDs, and browser localStorage history; the candidate ranking and default safety floors change.
 
 ## Publish
 
@@ -79,6 +79,6 @@ chess-mixes/
 └── requirements.txt
 ```
 
-Future puzzle integrity verification will live in `scripts/` and separate `.github/workflows/` definitions. It can publish `status.json` to Pages without regenerating mixes. Verification is **not** implemented in this migration.
+Selected puzzles are checked against the current Lichess API in the browser after each click. This integrity check does not evaluate whether the opponent's defensive moves are realistic.
 
-For detailed generation rules, see [chess/GENERATION_RULES.md](chess/GENERATION_RULES.md) and [chess/README.md](chess/README.md).
+For detailed generation rules, see [chess/GENERATION_RULES.md](chess/GENERATION_RULES.md) and [chess/README.md](chess/README.md). For the next proposed improvement (balanced difficulty), see [NEXT_IMPROVEMENTS.md](NEXT_IMPROVEMENTS.md).
