@@ -6,6 +6,8 @@ import html
 import io
 import json
 import re
+from heapq import heappush, heapreplace
+from math import floor
 import tomllib
 from datetime import date
 from pathlib import Path
@@ -17,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "configs"
 TEMPLATE_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR.parent / "site" / "mixes"
+DEFAULT_MAX_PUZZLES_PER_THEME = 5000
 
 
 def parse_args() -> argparse.Namespace:
@@ -103,6 +106,10 @@ def validate_config(config: dict) -> None:
             "puzzles_per_click must be >= 1"
         )
 
+    limit = config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME)
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+        raise RuntimeError("max_puzzles_per_theme must be an integer >= 0")
+
     if not config["themes"]:
         raise RuntimeError(
             "At least one [[themes]] entry is required"
@@ -182,87 +189,183 @@ def build_validation_record(row: list[str], moves: list[str], rating: int) -> li
     return [rating, game_id, moves[0], " ".join(moves[1:])]
 
 
+def proportional_quotas(
+    total: int,
+    move_weights: dict[int, float],
+) -> dict[int, int]:
+    """Split an integer total by weights, using largest remainders."""
+    weight_sum = sum(move_weights.values())
+    if total == 0 or weight_sum <= 0:
+        return {move_count: 0 for move_count in move_weights}
+
+    shares = {
+        move_count: total * weight / weight_sum
+        for move_count, weight in move_weights.items()
+    }
+    quotas = {
+        move_count: floor(share)
+        for move_count, share in shares.items()
+    }
+    remainder = total - sum(quotas.values())
+    order = sorted(
+        shares,
+        key=lambda move_count: (
+            -(shares[move_count] - quotas[move_count]),
+            move_count,
+        ),
+    )
+    for move_count in order[:remainder]:
+        quotas[move_count] += 1
+    return quotas
+
+
+def allocate_move_quotas(
+    limit: int,
+    available: dict[int, int],
+    move_weights: dict[int, float],
+) -> dict[int, int]:
+    """Respect the weighted move split, redistributing unavailable slots."""
+    if limit == 0:  # Explicitly unlimited.
+        return available.copy()
+
+    quotas = {move_count: 0 for move_count in available}
+    remaining = min(limit, sum(available.values()))
+
+    while remaining:
+        eligible = {
+            move_count: move_weights[move_count]
+            for move_count, capacity in available.items()
+            if capacity > quotas[move_count] and move_weights[move_count] > 0
+        }
+        if not eligible:
+            break
+
+        requested = proportional_quotas(remaining, eligible)
+        added = 0
+        for move_count, count in requested.items():
+            count = min(count, available[move_count] - quotas[move_count])
+            quotas[move_count] += count
+            added += count
+        if not added:
+            break
+        remaining -= added
+
+    return quotas
+
+
 def read_puzzles(
     source_path: Path,
     config: dict,
     theme_ids: list[str],
     active_move_counts: list[int],
-) -> tuple[dict[str, dict[int, list[str]]], dict[str, list]]:
+) -> tuple[
+    dict[str, dict[int, list[str]]],
+    dict[str, list],
+    dict[str, dict[int, int]],
+]:
+    """Read the CSV once, keeping only top-rated candidates in bounded heaps."""
     if not source_path.is_file():
         raise RuntimeError(
             f"Lichess puzzle database not found: {source_path}"
         )
 
-    puzzles = {
-        theme_id: {
-            move_count: []
-            for move_count in active_move_counts
-        }
+    limit = config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME)
+    move_weights = parse_move_weights(config)
+    candidates = {
+        theme_id: {move_count: [] for move_count in active_move_counts}
+        for theme_id in theme_ids
+    }
+    found_counts = {
+        theme_id: {move_count: 0 for move_count in active_move_counts}
         for theme_id in theme_ids
     }
 
-    validation_data: dict[str, list] = {}
-
     with source_path.open("rb") as compressed:
         dctx = zstd.ZstdDecompressor()
-
         with dctx.stream_reader(compressed) as reader:
-            text_stream = io.TextIOWrapper(
-                reader,
-                encoding="utf-8",
-            )
-
+            text_stream = io.TextIOWrapper(reader, encoding="utf-8")
             for row in csv.reader(text_stream):
                 if len(row) < 8:
                     continue
 
                 moves = row[2].split()
-
                 if len(moves) % 2 != 0:
                     continue
 
                 solver_moves = len(moves) // 2
-
                 if solver_moves not in active_move_counts:
                     continue
 
                 try:
                     rating = int(row[3])
+                    rating_deviation = int(row[4])
                     popularity = int(row[5])
                     nb_plays = int(row[6])
                 except ValueError:
                     continue
 
+                if rating_deviation < 0:
+                    continue
                 if not (
                     config["rating"]["min"]
                     <= rating
                     <= config["rating"]["max"]
                 ):
                     continue
-
                 if popularity < config["popularity_min"]:
                     continue
-
                 if nb_plays < config["min_plays"]:
                     continue
 
                 puzzle_id = row[0]
                 puzzle_themes = set(row[7].split())
+                # Higher popularity, lower deviation, then more plays.
+                # Puzzle ID is a stable tie-breaker across CSV versions.
+                rank = (popularity, -rating_deviation, nb_plays, puzzle_id)
+                snapshot = None
 
-                matched = False
                 for theme_id in theme_ids:
-                    if theme_id in puzzle_themes:
-                        puzzles[theme_id][solver_moves].append(
-                            puzzle_id
-                        )
-                        matched = True
+                    if theme_id not in puzzle_themes:
+                        continue
 
-                if matched and puzzle_id not in validation_data:
-                    validation_data[puzzle_id] = build_validation_record(
-                        row, moves, rating
-                    )
+                    found_counts[theme_id][solver_moves] += 1
+                    heap = candidates[theme_id][solver_moves]
+                    if limit > 0 and len(heap) >= limit and rank <= heap[0][0]:
+                        continue
 
-    return puzzles, validation_data
+                    if snapshot is None:
+                        snapshot = build_validation_record(row, moves, rating)
+                    entry = (rank, snapshot)
+                    if limit == 0:
+                        heap.append(entry)
+                    elif len(heap) < limit:
+                        heappush(heap, entry)
+                    else:
+                        heapreplace(heap, entry)
+
+    puzzles = {
+        theme_id: {move_count: [] for move_count in active_move_counts}
+        for theme_id in theme_ids
+    }
+    validation_data: dict[str, list] = {}
+
+    for theme_id in theme_ids:
+        available = {
+            move_count: len(candidates[theme_id][move_count])
+            for move_count in active_move_counts
+        }
+        quotas = allocate_move_quotas(limit, available, move_weights)
+        for move_count in active_move_counts:
+            # Heap entries are ranked, but browser selection stays random.
+            best = sorted(
+                candidates[theme_id][move_count], reverse=True
+            )[:quotas[move_count]]
+            for rank, snapshot in best:
+                puzzle_id = rank[3]
+                puzzles[theme_id][move_count].append(puzzle_id)
+                validation_data[puzzle_id] = snapshot
+
+    return puzzles, validation_data, found_counts
 
 
 def filter_available(
@@ -394,32 +497,41 @@ def print_statistics(
     puzzles: dict[str, dict[int, list[str]]],
     move_weights: dict[int, float],
     output_path: Path,
+    found_counts: dict[str, dict[int, int]] | None = None,
 ) -> None:
     print(f"Набор: {config['name']}")
     print()
-    print("Найдено задач:")
+    print(
+        f"Найдено и отобрано задач (рейтинг "
+        f"{config['rating']['min']}–{config['rating']['max']}):"
+    )
 
     for theme in themes:
         theme_id = theme["id"]
-        total = sum(
-            len(puzzles[theme_id][move_count])
-            for move_count in move_counts
+        selected_by_move = puzzles[theme_id]
+        found_by_move = (
+            found_counts[theme_id] if found_counts is not None
+            else {move: len(selected_by_move[move]) for move in move_counts}
         )
-        move_stats = ", ".join(
-            f"{move_count} ход.: "
-            f"{len(puzzles[theme_id][move_count])}"
-            for move_count in move_counts
-        )
-
+        found_total = sum(found_by_move[move] for move in move_counts)
+        selected_total = sum(len(selected_by_move[move]) for move in move_counts)
         print(
-            f"{theme['name']:30} "
-            f"({theme_id:20}) : "
-            f"{total:6} задач, "
-            f"вес темы = {theme.get('weight', 1)}; "
-            f"{move_stats}"
+            f"{theme['name']:30} ({theme_id:20}): "
+            f"найдено {found_total}, отобрано {selected_total}; "
+            f"вес темы = {theme.get('weight', 1)}"
         )
+        for move_count in move_counts:
+            print(
+                f"    {move_count} ход.: "
+                f"найдено {found_by_move[move_count]}, "
+                f"отобрано {len(selected_by_move[move_count])}"
+            )
 
+    limit = config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME)
     print()
+    print(
+        f"Лимит на тему: {limit if limit else 'без ограничения'}"
+    )
     print(
         f"Создан файл: "
         f"{output_path.relative_to(BASE_DIR.parent)}"
@@ -441,14 +553,16 @@ def print_statistics(
     print("Активные темы:")
 
     for theme in themes:
-        print(
-            f" - {theme['name']} "
-            f"(вес: {theme.get('weight', 1)})"
-        )
+        if theme.get("weight", 1) > 0 and any(
+            puzzles[theme["id"]][move] for move in move_counts
+        ):
+            print(
+                f" - {theme['name']} "
+                f"(вес: {theme.get('weight', 1)})"
+            )
 
     print()
     print("Количество ходов:")
-
     for move_count in move_counts:
         print(
             f" - {moves_text(move_count)} "
@@ -480,7 +594,7 @@ def main() -> None:
         TEMPLATE_DIR / config["template"]
     ).resolve()
 
-    puzzles, validation_data = read_puzzles(
+    puzzles, validation_data, found_counts = read_puzzles(
         source_path,
         config,
         theme_ids,
@@ -596,6 +710,11 @@ def main() -> None:
             "PUZZLES_PER_CLICK": str(
                 config["puzzles_per_click"]
             ),
+            "MAX_PUZZLES_PER_THEME": (
+                str(config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME))
+                if config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME)
+                else "без ограничения"
+            ),
             "APP_DATA_JSON": json.dumps(
                 app_data,
                 ensure_ascii=False,
@@ -616,11 +735,12 @@ def main() -> None:
 
     print_statistics(
         config,
-        available_themes,
-        available_move_counts,
+        config["themes"],
+        active_move_counts,
         puzzles,
         move_weights,
         output_path,
+        found_counts,
     )
 
 

@@ -62,6 +62,9 @@ class FilenamePatternTests(unittest.TestCase):
         batch = (chess_dir.parent / "chess-generate.bat").read_text(
             encoding="utf-8"
         )
+        self.assertIn('if "%MIX%"=="0" goto :all', batch)
+        self.assertIn('/on "%~dp0chess\\configs\\*.toml"', batch)
+        self.assertIn("if errorlevel 1 exit /b 1", batch)
         for number, stem in (
             (1, "1-basic"),
             (2, "2-deflection-attraction"),
@@ -76,6 +79,7 @@ class FilenamePatternTests(unittest.TestCase):
                 with (chess_dir / "configs" / f"{stem}.toml").open("rb") as file:
                     config = tomllib.load(file)
                 validate_config(config)
+                self.assertEqual(config['max_puzzles_per_theme'], 5000)
                 if number == 4:
                     self.assertEqual(
                         [theme["id"] for theme in config["themes"]],

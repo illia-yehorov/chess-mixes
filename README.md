@@ -9,11 +9,16 @@ Static Lichess puzzle mixes generated from TOML configurations and published wit
 3. From the repository root, run one of:
 
 ```bat
+chess-generate 0
 chess-generate 1
 chess-generate 2
 chess-generate 3
 chess-generate 4
 ```
+
+Run `chess-generate 0` to regenerate every `chess/configs/*.toml` mix in filename order. The batch stops on the first failed generation.
+
+Each TOML config sets `max_puzzles_per_theme = 5000` (0 means unlimited). After the existing rating, popularity, minimum plays and move-length filters, the generator keeps the best candidates per theme: higher `Popularity`, then lower `RatingDeviation`, then higher `NbPlays`. Its 5000 slots are split by active `move_weights` (for example, weights 20/50/30 yield 1000/2500/1500 tasks for 2/3/4 moves). Missing tasks in one length redistribute their slots to the others. The HTML still chooses randomly from the selected set. Generation logs show found and selected counts per theme and move length. The API validation snapshot contains only the final selected IDs. See [generation rules](chess/GENERATION_RULES.md) for details.
 
 The same Python generator can run without the batch file:
 
