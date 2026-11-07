@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+<meta charset="UTF-8">
+<title>mix4 R900-1200 M2-4</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 24px auto;
+    padding: 0 20px 40px;
+    text-align: center;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #f1f5f9;
+}
+
+.chess-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.25;
+}
+
+.instructions {
+    max-width: 680px;
+    margin: 16px auto 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+}
+
+.instruction-item + .instruction-item {
+    border-top: 1px solid #e2e8f0;
+}
+
+.instruction-item summary {
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.instruction-item summary:hover {
+    background: #f8fafc;
+}
+
+.instruction-item p {
+    margin: 0;
+    padding: 0 16px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+    body {
+        margin-top: 16px;
+        padding: 0 12px 24px;
+    }
+
+    .page-header {
+        gap: 8px;
+        padding: 12px 10px;
+    }
+
+    .page-header h1 {
+        font-size: 20px;
+    }
+
+    .chess-icon {
+        font-size: 23px;
+    }
+
+    .instruction-item summary {
+        padding: 10px 12px;
+    }
+
+    .instruction-item p {
+        padding: 0 12px 12px;
+    }
+}
+
+button {
+    font-size: 24px;
+    padding: 14px 28px;
+    cursor: pointer;
+}
+
+.last-selection {
+    max-width: 680px;
+    margin: 12px auto 0;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    font-size: 14px;
+}
+
+.last-selection[hidden] {
+    display: none;
+}
+
+.last-selection ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.last-selection a {
+    color: #2563eb;
+}
+
+.last-selection p {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.settings {
+    margin-top: 16px;
+    line-height: 1.7;
+    color: #666;
+}
+
+.section-title {
+    margin-top: 14px;
+    font-weight: bold;
+}
+
+.config-table {
+    margin: 6px auto;
+    border-collapse: collapse;
+}
+
+.config-table th,
+.config-table td {
+    padding: 7px 14px;
+    border-bottom: 1px solid #ddd;
+}
+
+.config-table th {
+    font-weight: bold;
+    background: #f5f5f5;
+}
+
+.themes-table {
+    min-width: 480px;
+}
+
+.themes-table th:nth-child(1),
+.themes-table td:nth-child(1) {
+    width: 40px;
+    text-align: center;
+}
+
+.themes-table th:nth-child(2),
+.themes-table td:nth-child(2) {
+    text-align: left;
+}
+
+.themes-table th:nth-child(3),
+.themes-table td:nth-child(3) {
+    width: 60px;
+    text-align: center;
+}
+
+.moves-table {
+    min-width: 220px;
+}
+
+.moves-table th,
+.moves-table td {
+    text-align: center;
+}
+
+.parameters {
+    margin-top: 20px;
+    font-size: 17px;
+}
+.check-status {
+    display: block;
+    margin: 2px 0 0 18px;
+    font-size: 12px;
+    color: #64748b;
+    overflow-wrap: anywhere;
+}
+
+.check-status.ok { color: #166534; }
+.check-status.invalid { color: #b91c1c; }
+.check-status.unknown { color: #92400e; }
+
+.integrity-summary {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="page-header">
+    <span class="chess-icon" aria-hidden="true">♛</span>
+    <h1>Лёха &amp; Папа — шахматная солянка</h1>
+</header>
+
+<button onclick="nextPuzzles()">
+    🎲 Следующие 10 задач
+</button>
+
+<section class="last-selection" id="last-selection" hidden>
+    <strong>Последние выбранные задачи (по порядку вкладок):</strong>
+    <ol id="last-selection-list"></ol>
+    <p>После открытия вкладок страница проверит выбранные задачи через API Lichess.
+    Проверка не блокирует вкладки и не гарантирует, что Lichess не изменит
+    задачу позднее.</p>
+    <div class="integrity-summary" id="integrity-summary" role="status" aria-live="polite"></div>
+</section>
+
+<section class="instructions" aria-label="Инструкция">
+    <details class="instruction-item">
+        <summary>♟️ Как решать задачи</summary>
+        <p><strong>Одна вкладка — одна задача.</strong> Решай только ту задачу,
+        которая открылась. Не нажимай на Lichess кнопку «Следующая задача» —
+        переходи к следующей вкладке.</p>
+    </details>
+
+    <details class="instruction-item">
+        <summary>🗂️ Если Chrome блокирует вкладки</summary>
+        <p>Вернись на вкладку с солянкой. Справа в адресной строке нажми
+        значок блокировки всплывающих окон, разреши их открытие для этой
+        страницы и снова нажми кнопку запуска задач.</p>
+    </details>
+</section>
+
+<div class="settings">
+
+    <div class="section-title">
+        Темы:
+    </div>
+
+    <table class="config-table themes-table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Тема</th>
+                <th>Вес</th>
+            </tr>
+        </thead>
+        <tbody id="themes-body"></tbody>
+    </table>
+
+    <div class="section-title">
+        Количество ходов:
+    </div>
+
+    <table class="config-table moves-table">
+        <thead>
+            <tr>
+                <th>Ходов</th>
+                <th>Вес</th>
+            </tr>
+        </thead>
+        <tbody id="moves-body"></tbody>
+    </table>
+
+    <div class="parameters">
+        Рейтинг:
+        <strong>
+            900–1200
+        </strong>
+
+        <br>
+
+        Решение:
+        <strong>
+            2–4 ходов
+        </strong>
+
+        <br>
+
+        За одно нажатие:
+        <strong>
+            10 задач
+        </strong>
+
+        <br>
+
+        Максимум задач на тему:
+        <strong>
+            1000
+        </strong>
+    </div>
+
+</div>
+
+<script>
+const appData = {"puzzles": {"clearance": {"2": ["BzO41", "Gjrhw", "xAul8", "X1mhJ", "WIuH1", "lBVGU", "uLAZJ", "GV6ZH", "v10Io", "m12Ou", "czq92", "HE9u3", "TRjrt", "8epGf", "TRcvs", "4FG5s", "foblc", "1Qudk", "5ZncO", "2Pbhb", "CCams", "bZRmP", "Cfdse", "WWcrn", "DlHsh", "4jnH6", "PN6R6", "v59LR", "3qsUL", "F9hQV", "3H5hO", "rS04K", "7jg1v", "1OR4U", "W6vrP", "T9iXC", "XGBn2", "sCao8", "XtNBI", "vFXwn", "okjEG", "1SkJJ", "x2B6W", "WdqvS", "B1w2g", "0F1QT", "sQ8Mt", "CO35A", "RoGQ7", "HRKPy", "ywBxr", "Ge02D", "xV0oz", "27Gyc", "7h2Ti", "3TlYS", "uTeZz", "Y8GUP", "Gc46A", "Nfkcu", "IcFZR", "nxFMk", "NXhOH", "TPLJ4", "JuA2m", "UOFR2", "uW6Mm", "ny10U", "5l9rL", "ra3U3", "7PSrj", "Ukh9K", "iwTGY", "NSPO9", "obQvt", "sPGkc", "IZP0Y", "wjOZz", "Myz9s", "9lE6O", "crK6p", "ud8Wo", "QcFWa", "zSJqk", "LYNqT", "yvGYi", "EsVwX", "1uWMh", "U9HHl", "yDhFT", "Cqbgy", "l3x3k", "AXqfJ", "NR1vt", "utB0Y", "EpCp9", "nEWb9", "4FLn5", "1PnVu", "yjIH4", "U6Y97", "czIs3", "ZQoKi", "2EBug", "9nmcX", "Nc3wa", "Yd5t0", "b5zVW", "8JtRq", "pEe1H", "HeQgQ", "fvpUi", "S5tCo", "syvZR", "2WeJ5", "GXIMG", "rDpfc", "Sahss", "MJqL9", "0AGAH", "fhv1M", "GlqPU", "f3y5F", "pRf0s", "AlotY", "k5x9Y", "LkCjv", "kuQX0", "SZ2ap", "gOBKT", "3zspa", "rHfMZ", "ZO2cp", "6l4xd", "8LqHM", "kVAQ1", "89Zmr", "Gtlza", "LDnLl", "ylfB5", "1pupe", "Q52s4", "yzdT2", "paNYr", "ajLkz", "wYJGh", "vG8Y3", "sEXN7", "rO2dz", "JUFiS", "H4XaE", "4zUcg", "DTsVG", "0JK2X", "JOyu2", "RMf9L", "RJ87i", "lJ92f", "V6Hoz", "q2Oby", "RQoke", "gqjVo", "hb6YF", "Mp2Bk", "7wZbd", "tjFKP", "7Jpis", "5Gy18", "L4Dy5", "ttHMx", "4mkuH", "kIHD3", "FmLQq", "KRks9", "uSVXp", "Arm8B", "7wtJe", "iO9Au", "NyWDl", "Gb54j", "WvhFG", "uBWk1", "qiWZG", "eEDdc", "ke7w2", "DWB4t", "m3i7V", "tOyF7", "fAmM2", "FzHOG", "yi0jw", "w7v1j", "vHXhn", "c3o2T", "yNmZV", "bFvD1", "WIgRk", "0jUhu", "vnZ2i", "iXhLa", "EqGB0", "afVyS", "RK7lX", "ybl9r", "lDbpr", "8Gz6n", "4xH9q", "A5Jfe", "LEiqq", "ribdF", "pOj4h", "Vwh4M", "XsuHP", "LFIku", "QHacv", "7MoL4", "piW1j", "HDMYe", "fZJhX", "7zRIX", "p0NIq", "coPyd", "7f9FJ", "O4MSD", "2vhG2", "4DIAq", "cAOeJ", "rXkyC", "QsGOH", "mbfca", "Voter", "gcCwJ", "Ndu8y", "QXI5P", "CEXRr", "wmE1N", "1FFO3", "O3qbJ", "MCBSB", "zbEMl", "jYuPZ", "wmHS2", "U8i0P", "l7ehD", "DSkP3", "4yR5D", "HgONC", "gbibY", "bYe7b", "P97sq", "rB4A8", "iyjVy", "oXH43", "idRZc", "wQ9xv", "1Rp7e", "xaK5x", "DIZL9", "aclio", "FIDRX", "GMY9e", "53HR5", "YXbFE", "B2hBc", "42rmo", "pyeCJ", "Vi3fI", "n2JLs", "mPe5u", "4pX3u", "OmQrh", "LqF7D", "tfNxX", "qQkmr", "AAbid", "rfMDK", "xQnf2", "qPI2U", "rk9pL", "qkUAo", "1ehz6", "iJYgf", "ZSmwf", "OlQWT", "4hA9c", "7YdD4", "M2VxK", "FRyns", "kGsUH", "gC6lA", "V9IMJ", "0EJUg", "D5gMS", "E1vm5", "QvINj", "rtcVy", "2J9g5", "ikgUn", "vvEoE", "3HR3b"], "3": ["N7QaW", "lrFo2", "DUutp", "uDQ46", "FwWEt", "BYV3x", "wB6Xx", "eXXUo", "Rdgzr", "lE8NR", "g3Qvz", "1it0F", "5Tnp5", "ifJuq", "ME76j", "YssP6", "VNf5w", "EXoIQ", "ojQPL", "ybLF6", "ZOd7i", "Q7JLn", "oYrFT", "dxxVI", "oYeAo", "vuWlv", "tqFXz", "u0dtD", "y7s3q", "a2ZEQ", "cgGJb", "knsMd", "iyC0R", "Keyrt", "qr4sf", "4k9Ul", "gY2LO", "X1f3a", "zxE81", "pP7qL", "KBYjP", "9o8DB", "OZZJU", "JtOdz", "6iaEq", "tTM8q", "GRzKJ", "mO2Zo", "yna9D", "b032k", "RFkj7", "ckR0f", "rayAB", "XJZST", "Ga62k", "Q0paS", "azHPR", "2opYL", "09Yru", "XFP84", "UV1jl", "R6rNJ", "fNBol", "BOZ6d", "jDnWN", "wcr7H", "yqUmj", "BAxkI", "W2Yp3", "KcF2o", "u5SzN", "lI5ko", "Avfr2", "98jwd", "HeBIz", "PAYb7", "aZRRT", "9eBwi", "vfbSf", "uj9aU", "6G4XF", "oqaz8", "tT4dI", "nmaG0", "Nytia", "cp1f1", "2lpNJ", "1pOrT", "ICFAf", "9zTaz", "EzGqP", "xRo4d", "saGFx", "YM4TV", "L9K4R", "f2MLM", "MPbb2", "a4L0q", "ssxT4", "rVbho", "ISWOb", "xQ99d", "AWWTV", "Pm4s5", "jjZkd", "XnGa1", "Ca21a", "8ociS", "6dQv2", "43eBC", "w5kjB", "ThucK", "xG0vK", "hfXrT", "6HbQ5", "1qv7e", "c8Hle", "00Pc8", "5zTpy", "dNoSb", "bwH1x", "13CyW", "EHAgh", "iLjv5", "YNywJ", "VIe0B", "cprTH", "7O8Yt", "v5GBT", "FMDkJ", "b19u5", "KxCr6", "TB2p7", "KKCSx", "QZ13o", "b4lv6", "MV5oD", "qmaEI", "G87Aa", "6gT8K", "L8Ima", "jBjuk", "bYexA", "hzX00", "gdej0", "W01ri", "5PYSq", "3ZUwi", "VOgf5", "bxbTh", "Vh7Oc", "pvyiR", "5RTXL", "AHdtv", "GOXsi", "bZKFN", "NhmPM", "4HYb9", "JO8xV", "wb68n", "ub74S", "6JN3F", "Dnc7i", "hV2hS", "YA38J", "edRuG", "LCpoY", "UH20E", "xhyKZ", "rKuTw", "HWD7T", "9ng6q", "s4H0X", "svQDs", "fvdKb", "MJewN", "tmZzo", "Tt8Jl", "TuGrJ", "V1bmh", "bOH67", "myx5L", "HilrE", "uWgRn", "MliBL", "NeEAa", "s5Kys", "yGRG3", "K7LT2", "BAZ3I", "MnTlF", "KEGh2", "xuTjz", "o6Fxi", "kXYUn", "1S7xf", "0J7az", "NPbpe", "KMCYj", "7rJUu", "gCz6D", "RZg6Z", "iu72F", "TQjLN", "noYcc", "UCh4h", "bruHk", "5Hwiq", "aULeO", "ov6PI", "MOirg", "QjBGb", "mUjGX", "HiEXt", "syyAq", "qAoG2", "Ym3Rj", "7mQsb", "TQ0dq", "7Y6R2", "mjaHN", "CUWXr", "YjxsX", "mLR0d", "t0Jdd", "shfV1", "s83ks", "Lf7ZT", "6Ufc4", "ARXqA", "aVJDO", "m8lMx", "14Aeu", "k3W0e", "bj1dY", "j2Ez0", "bN570", "qqXU1", "JzwCf", "f60ES", "yHBbM", "mhZAL", "XKCMj", "LyOmi", "rthKR", "Nc02N", "49rbs", "duaEK", "llu3O", "IwtNl", "Y9w6D", "d4NRB", "9Bxbh", "JPHem", "7kz98", "Z2LSU", "xXzp4", "GGF3U", "MpeRQ", "fRsOk", "msu4K", "Aj4eO", "Fxws9", "UCqFi", "7WkTn", "ZsJrD", "RF01O", "nva9O", "pBOgU", "yBOgf", "cKMDj", "IWISH", "IBobO", "9KGZL", "qYVCV", "MWH7q", "NZWBm", "wlKN1", "jJQEZ", "dKtnB", "pCzgJ", "bRSaj", "qDwOs", "3wL0H", "QdWri", "Y7tPX", "liD7C", "Ycrxp", "4as6d", "i4Msd", "rDjWB", "hgCin", "uzWY3", "lx7j8", "Of7MP", "NLVKX", "Ov7D5", "2HNpw", "elmbj", "VIzhR", "1pGWU", "6bbHP", "8VNNb", "dBsBQ", "CbgJn", "qnxKo", "wbzpD", "tZeyX", "6jzsO", "9MPvH", "9UpmK", "iJOOz", "jEv4I", "8T6lY", "IPDjB", "qvKto", "aj945", "rKFgk", "wPTuV", "bhxNJ", "Ntyrx", "272FU", "6yBwS", "BH0Gy", "M8TEa", "oE7Ef", "HX5te", "T1jmW", "oZ5Fj", "mHuAQ", "uJY5M", "fdJar", "nr02T", "SKMKa", "TA7TA", "7mlsq", "wx0PT", "SoFV2", "hYrqU", "NcncH", "IS64k", "7Hxq6", "UGve0", "FZTRh", "vTmW5", "QR9fA", "Yh4Xg", "xAf87", "GkwuQ", "6yrR3", "mlHFg", "hG0us", "USLhg", "pypR3", "lLJ6W", "RnD4u", "XcRaA", "RA333", "HQNXj", "3jxEV", "flJfW", "VhzYF", "8JFE6", "6Wlpt", "oPa5T", "aJEYS", "spRqh", "DB93q", "iRmqe", "wTRsG", "mb2To", "OvLVq", "6TowV", "qlRpS", "hFRd7", "cOBdk", "UPwRe", "XzdsB", "C5DX7", "opc6T", "Gygfw", "bRYQw", "DOdVv", "bV6xs", "yoMM8", "LnTmq", "w9F3V", "5hIbM", "EDeGT", "R4M0j", "KqWnC", "8Urhg", "KbLon", "A61lx", "JFllk", "lhWZ8", "72B3z", "O1Xab", "d0dyn", "YD7iT", "ZsOJh", "Ya8D9", "Ai8bu", "dhrz5", "4uR3Z", "lhXF8", "gxm3C", "OxZeH", "u8fGQ", "dXFdg", "slbVX", "07B8q", "GwPrc", "LdAKk", "F6XLw", "ooXR7", "24DFT", "fZgAM", "oaCAs", "cWWaf", "weR4r", "VvwDk", "PhfEU", "33fsU", "RKkKT", "fo9zU", "j2v9M", "4FF7f", "KwJC6", "kauLU", "7H3WO", "jXRMV", "b2nqb", "dnzdm", "B26MW", "g4Tv8", "Dpegp", "AXMF6", "BnTQR", "2tOxE", "o8NN7", "sO8DV", "khsWM", "A3baI", "7gY75", "mKl7Q", "RAl0G", "3mrHh", "AG2Mv", "YNgEN", "uXx0R", "7TpPZ", "VAj1h", "XRyjr", "FvHQq", "8Pcdz", "zFznz", "TNPoH", "GIiRN", "WaS7o", "yH0TI", "E5jy2", "Raj6r", "PTSup", "C1yHV", "PMXY5", "i7M1E", "NoGrF", "zkjBD", "ucA8G", "lFGUe", "k994u", "Wf8uU", "5HYfU", "88Osw", "PtzCk", "gPRzY", "uSD8P", "k2JkZ", "eU8GS", "4DTkz", "2M4l5", "WIcDc", "a4FUx", "N4lWy", "eqGPO", "6oRD4", "VjxeI", "NxqBX", "7UheH", "42oAB", "seEyN", "hZE9t", "QtatG", "Fzcqx", "wLhDH", "0SbHv", "3IUCF", "ljl5R", "IJHjL"], "4": ["Oi9qO", "BikUA", "HIRZ8", "96raa", "CvOHR", "BB6m4", "Ar3Qo", "BUs4i", "QxagO", "Vu16l", "3ltsS", "9DhxU", "A6VG8", "iydSV", "ZBIke", "mOZGO", "Klt8l", "0TUVH", "4BA79", "Rb6Vs", "knGLz", "nZkX4", "LHn8n", "hjMXj", "qAOJs", "K5Mxg", "tulfE", "RMVSy", "zQ00P", "Y6Im1", "ag6Yq", "Iwety", "ESVM1", "Hpe3k", "a39BI", "Npxxy", "Zs7uj", "Z3L6G", "WVNqG", "l9ydU", "itwVg", "fAZSo", "rzcJo", "LzDg7", "JDoTT", "YmqKF", "r03w3", "TCK9k", "NoHVm", "JmkSu", "IWlu9", "zQL8q", "ZR6DU", "vUXcC", "Qol5F", "cCkuQ", "5NfIH", "n31IQ", "dQYvN", "gHGvQ", "ppOwQ", "NwdmR", "MospD", "aw5Ho", "xezkK", "LF6aA", "UefFp", "YYuib", "ZSvoQ", "FI8Aq", "qyzYL", "PFMNb", "1pYow", "arsEh", "cnZT3", "GmpOP", "T26Kc", "ArGFe", "paJh1", "cMSQH", "gEyqC", "Pvftu", "ilTC3", "RxAko", "4C1bC", "bDeDa", "jQ9Qk", "7T4T4", "iWKzd", "wNrg5", "j8PhE", "LvlXQ", "CYZnB", "JeYjf", "7HRUl", "o6T54", "mopNN", "6PKcI", "7JkG4", "durjv", "rYM8h", "R8N0W", "Z9r89", "r9IKK", "G7vid", "h83qu", "WlIXw", "EthlE", "fcurJ", "fvKoN", "iu8w9", "fwHs2", "18vUj", "pJ4Od", "03CBj", "lznoS", "VDVdj", "GeIVZ", "X9Ob6", "aSf0m", "Nvvyo", "gAWqo", "v4ajI", "JoglI", "Mzcn4", "gdnbA", "sSbaw", "uf9dc", "RHf4O", "vVIMv", "EgAMn", "Gq6Y6", "dBSuI", "r7xrN", "w51XV", "gbQtQ", "x0cho", "adhnO", "HRmxz", "zwkR0", "gZqRA", "eM70G", "dR38D", "RQS3c", "aTUtp", "3LbA0", "vIQU7", "AO4bc", "ed5IE", "VTCEp", "4THwD", "JTWXI", "oK0Gu", "5ZVKk", "crZ3C", "RkboJ", "BBchZ", "6ShXE", "r6PZ0", "vaToy", "YZ3bj", "7yPKd", "aYbfX", "pDRNR", "CZSWd", "uGOFZ", "2S8nG", "IZow3", "wtSbO", "LrLal", "giSd3", "rRsRg", "I5vJ3", "JvhMQ", "9WsL4", "RRMD8", "eVQNJ", "77OZy", "x3r45", "d2gdi", "0BO6u", "3PRkp", "sqE56", "KVFGX", "U5opx", "ywUnd", "z9hnv", "hkICv", "0xVF4", "jiIw5", "MryA4", "yFmps", "wPv6l", "QfBhL", "Rgfyr", "pGa7o", "6rGBz", "QdXhi", "FB2MA", "OduAV"]}}, "validationData": {"BzO41": [1192, "", "f8g7", "h4g6 h7g6 g4h4"], "Gjrhw": [1105, "", "e7f5", "h5f6 g7f6 h3h7"], "xAul8": [1167, "", "e7d6", "h5g3 h2g3 g4h5"], "X1mhJ": [1191, "", "g6f4", "e4f6 g7f6 d3h7"], "WIuH1": [1171, "", "f3h5", "g6f4 g3f4 g7g2"], "lBVGU": [1181, "", "f4e2", "g4h6 g7h6 f3h5"], "uLAZJ": [1145, "", "g3h2", "e4h4 f6h4 d5g2"], "GV6ZH": [1031, "", "g1h1", "h5g3 h2g3 e5h5"], "v10Io": [1183, "", "f3e5", "d1h1 g2h1 c1g1"], "m12Ou": [1132, "", "e8f8", "h4g6 h7g6 g5h4"], "czq92": [1065, "", "f1g1", "g2g1 e3g1 h3g2"], "HE9u3": [1179, "", "h2h3", "e5f3 g2f3 c7h2"], "TRjrt": [1192, "", "f7f6", "h5h8 g7h8 h4h7"], "8epGf": [1058, "", "g6e5", "e4f6 g7f6 c2h7"], "TRcvs": [1014, "", "c6b4", "e4f6 g7f6 c2h7"], "4FG5s": [1160, "", "e6e7", "h4g6 h7g6 e4h4"], "foblc": [1085, "", "c3e4", "e5f3 g2f3 d6h2"], "1Qudk": [1008, "", "d4d7", "g5f3 g2f3 g6g1"], "5ZncO": [1034, "", "g5d2", "f5g3 h2g3 e5h5"], "2Pbhb": [1112, "", "e7c7", "h4g6 h7g6 g3h4"], "CCams": [1176, "", "b5c6", "g7h7 f6h7 c7g7"], "bZRmP": [1189, "", "g5g4", "h5f6 g7f6 h3h7"], "Cfdse": [1193, "", "f8f6", "d5g8 f6f8 c4f7"], "WWcrn": [1182, "", "f2f3", "c1d1 b3d1 c6c1"], "DlHsh": [1144, "", "d5b4", "e4f6 g7f6 c2h7"], "4jnH6": [1052, "", "e4b7", "e5f3 g2f3 c7h2"], "PN6R6": [1144, "", "d5e6", "e5f3 g2f3 c7h2"], "v59LR": [1066, "", "g6f7", "e4f6 g7f6 c2h7"], "3qsUL": [1179, "", "d3h7", "h8f6 h7g6 b8h8"], "F9hQV": [1190, "", "f4f1", "b6b7 f1b1 c6b6"], "3H5hO": [1145, "", "a1e1", "g6h6 g7h6 d3h7"], "rS04K": [1125, "", "f6g4", "h7f6 e7f6 h6h8"], "7jg1v": [1116, "", "h3c8", "a5b3 a2b3 c7a5"], "1OR4U": [1133, "", "h2h3", "e5f3 g2f3 c7h2"], "W6vrP": [1072, "", "a1a2", "f5g3 h2g3 b5h5"], "T9iXC": [1171, "", "d3f3", "g3f3 f2f3 g7g3"], "XGBn2": [1027, "", "d5b4", "e4f6 g7f6 d3h7"], "sCao8": [1044, "", "b2c2", "h6h8 g7h8 h3h7"], "XtNBI": [1032, "", "g3g4", "a5b3 a2b3 d5a5"], "vFXwn": [994, "", "d5f4", "e4f6 g7f6 d3h7"], "okjEG": [1061, "", "c4d5", "e5f3 g2f3 d6h2"], "1SkJJ": [1128, "", "g3e4", "e5f3 g2f3 d6h2"], "x2B6W": [1031, "", "d3f4", "g4f6 g7f6 g2g8"], "WdqvS": [1086, "", "e3e5", "f3f1 d1f1 b7g2"], "B1w2g": [1113, "", "d8g5", "f4e2 f3e2 e5h2"], "0F1QT": [969, "", "g6e5", "e4f6 g7f6 d3h7"], "sQ8Mt": [1181, "", "c5d5", "h7f6 g7f6 e4h7"], "CO35A": [1197, "", "g4f3", "g6e7 f6e7 d3h7"], "RoGQ7": [1172, "", "d8d4", "g6e7 c6e7 e4h7"], "HRKPy": [1080, "", "b2f6", "f4f6 g7f6 d2h6"], "ywBxr": [1082, "", "e4g5", "f4g5 h6g5 f3f7"], "Ge02D": [1194, "", "e3f1", "e4f6 g7f6 d3h7"], "xV0oz": [958, "", "c5b7", "e5f3 g2f3 d6h2"], "27Gyc": [928, "", "d6e7", "e4f6 g7f6 c2h7"], "7h2Ti": [1143, "", "d5d4", "e7f7 g7f7 e3e7"], "3TlYS": [1033, "", "c7f4", "f2h3 g2h3 e2g2"], "uTeZz": [1072, "", "c5b7", "g3e2 f3e2 d6h2"], "Y8GUP": [1130, "", "a1e1", "f2h3 g2h3 e2g2"], "Gc46A": [1112, "", "h8g8", "h7f6 g7f6 h3h7"], "Nfkcu": [1058, "", "h5f4", "g5f7 e6f7 g2g7"], "IcFZR": [1026, "", "c5c6", "e5f3 g2f3 b8h2"], "nxFMk": [1159, "", "e3g3", "h4g3 h2g3 h8h1"], "NXhOH": [1128, "", "d8f6", "g6e7 f6e7 d3h7"], "TPLJ4": [1034, "", "d5e3", "e4f6 g7f6 c2h7"], "JuA2m": [1163, "", "b3c4", "f6g4 h3g4 d8h4"], "UOFR2": [942, "", "d5b4", "e4f6 g7f6 d3h7"], "uW6Mm": [1185, "", "g8h8", "g5f6 h8g8 c1h6"], "ny10U": [941, "", "e3d4", "e5f3 g2f3 c7h2"], "5l9rL": [1173, "", "h4h3", "b8g8 g2h1 b7b8q"], "ra3U3": [1142, "", "g1g2", "e2e1 g2g1 d1f3"], "7PSrj": [1056, "", "d4e6", "h4g6 h7g6 f4h4"], "Ukh9K": [1083, "", "c1a3", "g3e2 d1e2 d6h2"], "iwTGY": [929, "", "c4b2", "e4f6 g7f6 d3h7"], "NSPO9": [1154, "", "f1e1", "h5g3 h2g3 c5h5"], "obQvt": [1130, "", "d4f5", "e5f3 g2f3 d6h2"], "sPGkc": [923, "", "g8g7", "h6f5 e6f5 h4h6"], "IZP0Y": [1113, "", "g3g4", "h4f3 g2f3 h5h1"], "wjOZz": [927, "", "d5c3", "g6e7 g5e7 d3h7"], "Myz9s": [948, "", "g5d2", "h5g3 h2g3 f5h5"], "9lE6O": [1155, "", "b7b5", "f3e5 f6e5 f1f6"], "crK6p": [965, "", "f5d4", "h4g6 h7g6 e4h4"], "ud8Wo": [1082, "", "b2a4", "a1g1 g3f3 a2a1q"], "QcFWa": [911, "", "f5h4", "e4f6 g7f6 d3h7"], "zSJqk": [1050, "", "f7f5", "h4g6 h7g6 g4h4"], "LYNqT": [1149, "", "f4f5", "h4h1 g2h1 h6h2"], "yvGYi": [1081, "", "d5e4", "g6f8 f5f8 g4g7"], "EsVwX": [1089, "", "c1b2", "h4g6 h7g6 e4h4"], "1uWMh": [1057, "", "a8g8", "h4g6 h7g6 g3h4"], "U9HHl": [1143, "", "b8a8", "a4b6 a7b6 d1a4"], "yDhFT": [1130, "", "e6e5", "e4f6 g7f6 d3h7"], "Cqbgy": [1176, "", "c7e5", "h6h8 g7h8 h3h7"], "l3x3k": [938, "", "g6f4", "e4f6 g7f6 d3h7"], "AXqfJ": [1143, "", "c6a8", "h5g3 h2g3 e5h5"], "NR1vt": [1149, "", "g4g5", "h4g4 g1e2 h8h1"], "utB0Y": [1077, "", "d4e3", "e4f6 e7f6 d3h7"], "EpCp9": [1140, "", "c7c6", "f4g6 h7g6 d4h4"], "nEWb9": [1119, "", "a1c2", "e5c6 d7c6 e2e8"], "4FLn5": [1152, "", "e7e6", "c6d5 a5d5 c4c8"], "1PnVu": [1161, "", "g6g4", "h5f6 g7f6 h4h8"], "yjIH4": [1147, "", "d5b4", "e4f6 g7f6 d3h7"], "U6Y97": [1152, "", "h5h4", "g7f5 g6f5 f8h6"], "czIs3": [1048, "", "h4f5", "f8g7 f5g7 f7f8"], "ZQoKi": [1027, "", "d6d5", "e4f6 g7f6 d3h7"], "2EBug": [1090, "", "f7e6", "f6f7 g8f8 f3f6"], "9nmcX": [932, "", "e5b8", "e6d5 d8d5 e7e4"], "Nc3wa": [1051, "", "d4b5", "e5f3 g2f3 d6h2"], "Yd5t0": [1157, "", "d4d3", "h7h8 g7h8 h3h7"], "b5zVW": [1116, "", "e1f3", "h2h1 f3g1 d6h2"], "8JtRq": [1143, "", "f5d3", "c4d3 d7d3 a4e4"], "pEe1H": [954, "", "c5c4", "e4f6 g7f6 d3h7"], "HeQgQ": [1107, "", "c4d4", "g6g5 f4g5 f7h5"], "fvpUi": [1184, "", "h1e1", "b4a2 c3a2 b7b1"], "S5tCo": [993, "", "d5f4", "e4f6 g7f6 d3h7"], "syvZR": [1073, "", "d4e3", "e4f6 g7f6 d3h7"], "2WeJ5": [1093, "", "e6b3", "e4f6 g7f6 c2h7"], "GXIMG": [1157, "", "e4c5", "f4g3 f2g3 f5f2"], "rDpfc": [1053, "", "e7d6", "b7b8 d7b8 e4b7"], "Sahss": [1015, "", "d6e5", "e4f6 g7f6 c2h7"], "MJqL9": [1087, "", "e3d3", "g8d8 d3c2 g7g8q"], "0AGAH": [1132, "", "f5d4", "h4g6 h7g6 g4h4"], "fhv1M": [904, "", "c3b4", "h5g3 h2g3 d5h5"], "GlqPU": [1174, "", "f5g6", "h6g6 h7g6 h3h8"], "f3y5F": [1154, "", "a6f1", "e4f6 g7f6 c2h7"], "pRf0s": [1055, "", "a1e1", "e2e1 f3e1 e6e2"], "AlotY": [1038, "", "a1e1", "f2h3 g2h3 e2g2"], "k5x9Y": [1113, "", "b8a8", "c4b6 a7b6 g4a4"], "LkCjv": [1155, "", "c7d8", "h5g3 h2g3 g5h5"], "kuQX0": [1036, "", "e3g3", "e5a1 g1h2 g7e5"], "SZ2ap": [930, "", "a3a4", "e5f3 g2f3 d6h2"], "gOBKT": [1109, "", "d1b1", "a5b3 a2b3 b6a5"], "3zspa": [1172, "", "d8b6", "f1h1 h3g3 f2f1q"], "rHfMZ": [930, "", "b2a1", "e4f6 g7f6 c2h7"], "ZO2cp": [1052, "", "d4b5", "e5f3 g2f3 d6h2"], "6l4xd": [983, "", "g7h6", "g5f7 f8f7 g3g6"], "8LqHM": [1131, "", "c3d5", "e5f3 g2f3 c7h2"], "kVAQ1": [1048, "", "f5g4", "h7f6 d4f6 d3h7"], "89Zmr": [1143, "", "c8d7", "e5d5 g1g2 e8e1"], "Gtlza": [1099, "", "a1e5", "h7f6 g7f6 h5h7"], "LDnLl": [1035, "", "e2e3", "d4c2 c1c2 d8d1"], "ylfB5": [1108, "", "e1d2", "h5g3 h2g3 g5h5"], "1pupe": [1079, "", "e7h4", "e4f6 g7f6 d3h7"], "Q52s4": [1159, "", "b6c6", "a1e1 e4d3 a2a1q"], "yzdT2": [1171, "", "d5f4", "e4f6 g7f6 d3h7"], "paNYr": [1106, "", "c8c3", "g6e7 f6e7 d3h7"], "ajLkz": [1107, "", "f3f4", "h5g3 h2g3 e5h5"], "wYJGh": [1086, "", "h7h6", "e4f6 g7f6 c2h7"], "vG8Y3": [1167, "", "c8g8", "g6f8 g8f8 g3g7"], "sEXN7": [1010, "", "h8g6", "f3g5 h6g5 e2h5"], "rO2dz": [1058, "", "d8f6", "h6h8 g7h8 h5h7"], "JUFiS": [1119, "", "b3b2", "f3g5 h6g5 e2h5"], "H4XaE": [1077, "", "c8g4", "d2c3 a5c3 d1d8"], "4zUcg": [1029, "", "e4f5", "a1f1 f5g6 a2a1q"], "DTsVG": [1114, "", "a6c6", "a8h8 h7g6 a7a8q"], "0JK2X": [1132, "", "e2e1", "d2d1 c2d1 h6d2"], "JOyu2": [978, "", "e6e8", "f2h3 g2h3 c2g2"], "RMf9L": [1027, "", "e3d3", "e4d3 c2d3 e6e1"], "RJ87i": [1070, "", "h8g8", "h6h8 g7h8 h5h7"], "lJ92f": [1163, "", "c2e4", "h5g3 h2g3 e5h5"], "V6Hoz": [1151, "", "d2f4", "h7h8 g7h8 h3h7"], "q2Oby": [1081, "", "h7h5", "f7h6 g7h6 d7h7"], "RQoke": [1154, "", "e3f1", "h4g6 h7g6 f4h4"], "gqjVo": [1085, "", "d4f5", "e5f3 g2f3 d6h2"], "hb6YF": [1067, "", "d8d2", "f7h6 g7h6 f2f8"], "Mp2Bk": [1167, "", "d6f4", "f3g3 f4g3 b7f3"], "7wZbd": [1001, "", "h6g5", "e4f6 g7f6 c2h7"], "tjFKP": [1190, "", "g3h5", "e5e4 f3g3 f6e5"], "7Jpis": [1127, "", "f6d7", "f5g3 h2g3 e5h5"], "5Gy18": [1026, "", "e2e1", "h4g6 h7g6 g4h4"], "L4Dy5": [1036, "", "b5c4", "g6e7 f6e7 d3h7"], "ttHMx": [1061, "", "c8c3", "g6e7 d8e7 d3h7"], "4mkuH": [1159, "", "b2c1", "h5g3 h2g3 g5h5"], "kIHD3": [1106, "", "e7g5", "e5c6 b7c6 e2e8"], "FmLQq": [1118, "", "d8g5", "g6e7 d6e7 c2h7"], "KRks9": [1071, "", "c6e5", "e4f6 g7f6 d3h7"], "uSVXp": [1069, "", "e4d6", "h5g3 h2g3 f5h5"], "Arm8B": [985, "", "c1e3", "b1h1 h3g4 b2b1q"], "7wtJe": [1135, "", "d5b4", "e4f6 g7f6 d3h7"], "iO9Au": [1189, "", "h1f1", "c5b3 a2b3 f5a5"], "NyWDl": [1139, "", "d1d6", "c6e4 e1e4 c8c1"], "Gb54j": [1085, "", "d4f5", "e5f3 g2f3 d6h2"], "WvhFG": [1161, "", "d6e5", "f5e7 c6e7 d3h7"], "uBWk1": [1149, "", "h3g4", "e5f3 g2f3 d6h2"], "qiWZG": [1109, "", "e8d7", "h4g6 h7g6 g4h4"], "eEDdc": [1059, "", "e6c4", "g7g8 h6g8 d4g7"], "ke7w2": [1151, "", "b1a1", "b2a2 c3a2 g2b2"], "DWB4t": [1017, "", "d5b4", "d3b5 c7c6 d1d8"], "m3i7V": [1161, "", "a1b1", "f2h3 g2h3 b2g2"], "tOyF7": [1044, "", "c8h3", "h4g6 h7g6 e4h4"], "fAmM2": [1112, "", "e4f3", "g3e2 f3e2 d6h2"], "FzHOG": [1047, "", "d7f6", "e4f6 g7f6 d3h7"], "yi0jw": [956, "", "g8h7", "f3g5 h6g5 d1h5"], "w7v1j": [993, "", "c5e4", "g5f7 f8f7 g1g8"], "vHXhn": [1061, "", "g6f4", "e4f6 g7f6 c2h7"], "c3o2T": [1155, "", "a3c1", "e4f6 g7f6 d3h7"], "yNmZV": [1146, "", "c6b4", "g6e7 f6e7 d3h7"], "bFvD1": [1168, "", "b3b2", "d5e7 g8h8 d3d8"], "WIgRk": [1167, "", "a2d2", "h7h8 g6h8 h3h7"], "0jUhu": [1167, "", "d8f6", "h7h8 g7h8 h5h7"], "vnZ2i": [961, "", "a2a4", "f3d5 e5d5 f1f8"], "iXhLa": [934, "", "g4f3", "h1f1 f3g4 h2h1q"], "EqGB0": [944, "", "g8h8", "h4g6 h7g6 g4h4"], "afVyS": [1143, "", "e2f3", "f4e2 c3e2 e5h2"], "RK7lX": [1044, "", "h7h6", "e4f6 g7f6 c2h7"], "ybl9r": [1119, "", "d4e6", "g3e2 f3e2 f4h2"], "lDbpr": [997, "", "c5b5", "g6g7 f6g7 e4h7"], "8Gz6n": [978, "", "c2c3", "b4a4 c5a4 e7a3"], "4xH9q": [1039, "", "h8e8", "f5f1 g7g1 f6f3"], "A5Jfe": [1081, "", "g7h6", "e4f6 e7f6 d3h7"], "LEiqq": [1014, "", "h2h3", "e5f3 g2f3 c7h2"], "ribdF": [1099, "", "d4c6", "e5f3 g2f3 d6h2"], "pOj4h": [904, "", "b4a3", "e4f6 g7f6 d3h7"], "Vwh4M": [1074, "", "c3b5", "h5g3 h2g3 g4h5"], "XsuHP": [1144, "", "b2a1", "c4c6 b7c6 f1a6"], "LFIku": [983, "", "e5c5", "b4c2 a3c2 b8b1"], "QHacv": [1104, "", "d6d7", "h4g6 h7g6 e4h4"], "7MoL4": [1062, "", "c2e3", "h7h8 g7h8 h4h7"], "piW1j": [997, "", "e3d1", "h5f6 g7f6 h4h7"], "HDMYe": [1167, "", "f2f3", "h5g3 h2g3 e5h5"], "fZJhX": [1049, "", "f6h4", "e4f6 g7f6 d3h7"], "7zRIX": [1020, "", "c3e4", "h2f3 g2f3 c7h2"], "p0NIq": [956, "", "d4f5", "e5f3 g2f3 d6h2"], "coPyd": [1053, "", "g5d8", "e5f3 g2f3 c7h2"], "7f9FJ": [1097, "", "c6d5", "b2b1 c3b1 b8b2"], "O4MSD": [1131, "", "g6f7", "g5h5 f7h5 d8h4"], "2vhG2": [956, "", "a1d1", "e5f3 g2f3 d6h2"], "4DIAq": [928, "", "d7e5", "e4f6 g7f6 d3h7"], "cAOeJ": [1107, "", "a1d4", "h5h8 g7h8 h2h7"], "rXkyC": [1123, "", "e2d3", "h4g6 h7g6 e4h4"], "QsGOH": [1070, "", "e3f1", "e4f6 g7f6 d3h7"], "mbfca": [1149, "", "f3g5", "h2f3 g5f3 h3h1"], "Voter": [1034, "", "d4f5", "e5f3 g2f3 c7h2"], "gcCwJ": [921, "", "h7h6", "e4f6 g7f6 c2h7"], "Ndu8y": [1180, "", "f8g7", "f6h5 g6h5 f3f7"], "QXI5P": [1037, "", "b8c6", "h4g6 h7g6 f4h4"], "CEXRr": [984, "", "h7h6", "e4f6 g7f6 c2h7"], "wmE1N": [969, "", "c3b5", "e5f3 g2f3 d6h2"], "1FFO3": [966, "", "h7h6", "e4f6 g7f6 c2h7"], "O3qbJ": [1038, "", "e2c3", "h8h2 g2g1 d8h8"], "MCBSB": [1092, "", "g8g7", "f6f8 g7g8 f5f6"], "zbEMl": [932, "", "h2h3", "e5f3 g2f3 c7h2"], "jYuPZ": [960, "", "c6d4", "e4f6 g7f6 c2h7"], "wmHS2": [1072, "", "e3f4", "g4f3 d2f3 g5g2"], "U8i0P": [972, "", "g3f5", "e5f3 g2f3 d6h2"], "l7ehD": [1196, "", "f4e4", "g3h3 f2h3 c3g3"], "DSkP3": [975, "", "c7a8", "h5g3 h2g3 e5h5"], "4yR5D": [1107, "", "e2f1", "g5h5 g6h5 g3g7"], "HgONC": [1081, "", "c5c6", "f5g3 h2g3 d7h3"], "gbibY": [974, "", "g7f8", "f4e5 f8g7 f1f8"], "bYe7b": [1155, "", "a8c8", "g7h7 f5h7 c7g7"], "P97sq": [939, "", "e6e5", "e4f6 g7f6 b1h7"], "rB4A8": [1004, "", "d2c3", "h5g3 h2g3 b5h5"], "iyjVy": [1189, "", "f3h5", "c1h1 h3g2 c8c1"], "oXH43": [940, "", "h2h3", "e5f3 g2f3 c7h2"], "idRZc": [1080, "", "h2h3", "e5f3 g2f3 c7h2"], "wQ9xv": [1121, "", "c3d1", "e4f6 g7f6 c2h7"], "1Rp7e": [1136, "", "g6e5", "e4f6 g7f6 d3h7"], "xaK5x": [998, "", "d3c2", "h5g3 h2g3 e5h5"], "DIZL9": [901, "", "c6b4", "e4f6 g7f6 d3h7"], "aclio": [1129, "", "e5d4", "h5g3 h2g3 e8h5"], "FIDRX": [1079, "", "d1d3", "h5g3 h2g3 d5h5"], "GMY9e": [985, "", "c3d5", "h5g3 h2g3 g6h5"], "53HR5": [974, "", "d3d4", "e5f3 e2f3 e7e1"], "YXbFE": [974, "", "g3f4", "g4f3 f1f3 g5g1"], "B2hBc": [1108, "", "d5b4", "e4f6 g7f6 d3h7"], "42rmo": [1176, "", "e4d6", "h5g3 h2g3 g4h5"], "pyeCJ": [1181, "", "h8g7", "d7e7 e6e7 d1d7"], "Vi3fI": [946, "", "h7h6", "e4f6 g7f6 d3h7"], "n2JLs": [1187, "", "e7d6", "h5h8 g7h8 h1h7"], "mPe5u": [1020, "", "f4c1", "e4f6 g7f6 b1h7"], "4pX3u": [1060, "", "b8d6", "g2g1 h2g1 g5g2"], "OmQrh": [939, "", "f2f3", "h5g3 h2g3 f5h5"], "LqF7D": [1002, "", "c3b2", "g6e7 d5e7 c2h7"], "tfNxX": [1159, "", "c6d4", "e4f6 g7f6 c2h7"], "qQkmr": [1059, "", "c2c1q", "h6h8 g7h8 h4h7"], "AAbid": [1143, "", "f2f3", "h3g2 f3g4 h5h1"], "rfMDK": [971, "", "c6b4", "e4f6 g7f6 d3h7"], "xQnf2": [1137, "", "g3h4", "g4f2 e3f2 g6g2"], "qPI2U": [988, "", "g7h8", "g5f6 d5f6 g4g7"], "rk9pL": [984, "", "d4f5", "e5f3 g2f3 d6h2"], "qkUAo": [988, "", "g1h1", "h5g3 h2g3 f5h5"], "1ehz6": [968, "", "h5g4", "e5e6 h6f8 g3d6"], "iJYgf": [950, "", "h7h6", "e4f6 g7f6 d3h7"], "ZSmwf": [1112, "", "c6d4", "h4g6 h7g6 g3h4"], "OlQWT": [1069, "", "d2c1", "h5g3 h2g3 f5h5"], "4hA9c": [1050, "", "h4g6", "h7g6 f7g6 h5h8"], "7YdD4": [1021, "", "g3g4", "f4e2 e1e2 c7h2"], "M2VxK": [1047, "", "g8g7", "e5h5 g7h7 f4e5"], "FRyns": [979, "", "d2h6", "h5g3 h2g3 c5h5"], "kGsUH": [1022, "", "e2e4", "h2f3 g2f3 c7h2"], "gC6lA": [1065, "", "g2f3", "g5f6 f7f6 g4g7"], "V9IMJ": [926, "", "e3e4", "e5f3 g2f3 c7h2"], "0EJUg": [1136, "", "d1f3", "h2h1 f3h1 h6h2"], "D5gMS": [1153, "", "b3b5", "h5g3 h2g3 e5h5"], "E1vm5": [1111, "", "d2b3", "h5g3 h2g3 e5h5"], "QvINj": [993, "", "b7b6", "a5a8 c6a8 a4a7"], "rtcVy": [1054, "", "d4f5", "e5f3 g2f3 d6h2"], "2J9g5": [1178, "", "b4c3", "d5d1 e2d1 c6h1"], "ikgUn": [974, "", "c3f6", "g6e7 f6e7 e4h7"], "vvEoE": [1109, "", "b2c1", "e4f6 g7f6 c2h7"], "3HR3b": [1125, "", "h7h6", "e4f6 g7f6 c2h7"], "N7QaW": [1198, "", "b1d2", "c5c4 d3d4 e7c5 d4c5 b6c5"], "lrFo2": [1198, "", "d8d4", "e4f6 e7f6 d3h7 g8h7 d1d4"], "DUutp": [1196, "", "f8d6", "b8d8 d6d8 b1b8 d8b8 a7b8"], "uDQ46": [1184, "", "e4e7", "d6e7 e8e7 d1d8 e7e8 d8e8"], "FwWEt": [1117, "", "d8d7", "d3e4 f5e4 d1d4 f7f6 d4e4"], "BYV3x": [1196, "", "f4f3", "e6e8 g6f8 b6e6 g8h8 e8f8"], "wB6Xx": [1134, "", "f8c5", "d7c7 c8c7 d1d8 g8g7 d8a8"], "eXXUo": [1038, "", "e5g3", "d6d1 g1h2 e7d6 a5b7 d6g3"], "Rdgzr": [1167, "", "c2c8", "e8d7 c8a8 e7e8 a8e8 d7e8"], "lE8NR": [1088, "", "d8d5", "e2e8 g8h7 h3g5 h6g5 f3h3"], "g3Qvz": [1194, "", "c5c6", "a1f1 f3e4 a2a1q a5a1 f1a1"], "1it0F": [1111, "", "d8d7", "e6f8 a8f8 f7e6 d7d8 e6g4"], "5Tnp5": [1140, "", "f1f5", "h7f5 e6f5 h6h8 f8g7 h8e8"], "ifJuq": [1171, "", "b2d2", "b3f7 g8f7 b1b7 f7f6 b7d7"], "ME76j": [1038, "", "a8a2", "h5h8 g7h8 h1h7 g8f8 h7h8"], "YssP6": [1078, "", "c7f7", "e8f7 f8f7 e1e8 f7f8 e8f8"], "VNf5w": [1165, "", "c8b8", "d4c6 b7c6 d1d8 b8b7 f5c8"], "EXoIQ": [1173, "", "g3f2", "d4d1 f2f1 g7d4 g1h1 d1f1"], "ojQPL": [1196, "", "d5e6", "f2g2 e3g2 f8f2 g1h1 f2g2"], "ybLF6": [1186, "", "a1f1", "g8g5 d5g5 d8g8 g5g8 h7g8"], "ZOd7i": [1154, "", "f3d3", "a1d1 d3d1 a8a1 d1a1 e5a1"], "Q7JLn": [939, "", "b5b6", "d1g1 g3h2 d2d1q d8d1 g1d1"], "oYrFT": [1141, "", "e7c8", "g3e2 e1e2 b8h2 g1f1 h2h1"], "dxxVI": [1186, "", "a4a3", "g8b8 b5c4 g7g8q g2g8 b8g8"], "oYeAo": [1178, "", "c3b5", "a3a1 b2a1 a8a2 b1c1 a2a1"], "vuWlv": [1002, "", "e6e7", "g1e1 e7f8 g2g1q g7g1 e1g1"], "tqFXz": [957, "", "d7c6", "e4f6 e7f6 d3h7 g8h8 d1d5"], "u0dtD": [1188, "", "d4a7", "b7a7 a8a7 b2b8 f8e7 b8h8"], "y7s3q": [1128, "", "a3a4", "c1f1 e2f1 c8c1 a2a1 c1f1"], "a2ZEQ": [1197, "", "b7a6", "c2d2 d1d2 c8c1 a6f1 c1f1"], "cgGJb": [1141, "", "e7g5", "e4d4 d8d4 d3h7 g8h7 d1d4"], "knsMd": [1020, "", "e4a4", "c1e2 g1h1 c3c1 g2g4 c1f1"], "iyC0R": [1186, "", "d7d5", "e4f6 g7f6 d3g6 g8f8 g6f6"], "Keyrt": [1157, "", "f8e8", "e5e8 c8e8 f4e5 e8e5 d4e5"], "qr4sf": [1073, "", "c2f2", "e3c1 f2f1 h6e3 g1h1 c1f1"], "4k9Ul": [1118, "", "e8f6", "e5f6 e6f6 e4e8 c8e8 e1e8"], "gY2LO": [1064, "", "a3e7", "f3f2 c2f2 g4d1 f2e1 d1e1"], "X1f3a": [990, "", "f5f6", "a1h1 h3g2 a2a1q a7a1 h1a1"], "zxE81": [959, "", "f1f2", "e3e1 f2f1 h6e3 g1h1 e1f1"], "pP7qL": [1154, "", "c3d3", "a1d1 d3e4 a2a1q a3a1 d1a1"], "KBYjP": [1160, "", "a5a6", "b3b1 e1d1 b1d1 e2d1 b8b1"], "9o8DB": [1145, "", "e5c4", "d1g1 g3h4 d2d1q d6d1 g1d1"], "OZZJU": [1172, "", "c5f2", "e2f2 f1f2 e7e1 f2f1 e1f1"], "JtOdz": [1121, "", "b5c6", "g5f3 g2f3 f6g5 f2g3 g5g3"], "6iaEq": [1194, "", "e5d3", "h4g6 h7g6 g5h4 g7h6 h4h6"], "tTM8q": [1082, "", "g7c3", "d2c3 a5c3 d1d8 g8g7 d8e7"], "GRzKJ": [1127, "", "c3d5", "d8d5 f3d5 h8d8 d3c2 d8d5"], "mO2Zo": [1022, "", "a5a7", "d8f8 a3f8 d1d8 a7a8 d8f8"], "yna9D": [1157, "", "e1d1", "c1d1 d4d1 c8c1 d1c1 g5c1"], "b032k": [1080, "", "c8c2", "d7f6 d5f6 d1d8 f6e8 d8e8"], "RFkj7": [1115, "", "b5d7", "e7d7 d8d7 e1e8 g7f8 e8f8"], "ckR0f": [1163, "", "g8e8", "d4f6 f7f6 e3d4 h8g8 d4f6"], "rayAB": [1143, "", "h1h3", "d8d3 e3d3 c8d8 d3d8 c7d8"], "XJZST": [1189, "", "a4h4", "f6f7 h4f4 c6f6 f4f6 e5f6"], "Ga62k": [994, "", "c1b1", "e4d3 e3d3 e6e1 d3d1 e1d1"], "Q0paS": [1184, "", "f8h8", "f4e6 f7e6 f3f7 g7h6 f2h2"], "azHPR": [1161, "", "b1b2", "b8f8 f6e7 b7b8q b2b8 f8b8"], "2opYL": [1179, "", "a8f3", "d3f1 g2g3 d1d3 f3d3 f1d3"], "09Yru": [1116, "", "c5e5", "e1e5 g7e5 d1e1 e8f7 e1e5"], "XFP84": [1192, "", "h7h6", "f3f8 g8h7 f1f7 c7f7 f8f7"], "UV1jl": [1177, "", "e3e2", "d2e2 e1e2 d6d1 g1h2 d1e2"], "R6rNJ": [1113, "", "b7c7", "d8d7 c7d7 f8d8 d7d8 g5d8"], "fNBol": [1187, "", "e4g6", "h6g6 h7g6 h1h8 g8f7 h8c8"], "BOZ6d": [1174, "", "f1f7", "e4f2 f7f2 e5e1 f2f1 e1f1"], "jDnWN": [1153, "", "b3c2", "h2g2 g1g2 h7h2 c2d3 h2g2"], "wcr7H": [1054, "", "d4d3", "a8f8 f6e5 a7a8q a4a8 f8a8"], "yqUmj": [1061, "", "h2h3", "d2e2 h5e2 d8d2 b2g7 d2e2"], "BAxkI": [1042, "", "d4e4", "b7d7 d8d7 a6c8 g8g7 c8d7"], "W2Yp3": [1195, "", "c1c2", "h4d8 g7f8 h3h8 g8h8 d8f8"], "KcF2o": [1195, "", "f3f2", "f5f6 g7f6 c5f5 f2f1q f5f1"], "u5SzN": [1154, "", "a1e1", "e6e1 c3e1 c6g6 g1f1 g6f5"], "lI5ko": [1120, "", "g2g4", "d4d1 c2d1 e5c3 e1f1 d8d1"], "Avfr2": [1152, "", "d4d5", "e4f6 g7f6 e1e7 h7g8 d2h6"], "98jwd": [1182, "", "e7h4", "f1f2 h4f2 e1f1 f7g6 f1f2"], "HeBIz": [1179, "", "e6f5", "d6f8 g7g8 a3e7 c4c7 e7c7"], "PAYb7": [1175, "", "d6e5", "h5d1 g2f1 h8h1 g1h1 d1f1"], "aZRRT": [1178, "", "b3b2", "a1g1 g3h2 a2a1q b2a1 g1a1"], "9eBwi": [1102, "", "h6c6", "h5g3 h2g3 f7h5 g2h3 h5h3"], "vfbSf": [1111, "", "b4e7", "g8g2 g1f1 h5g3 f2g3 h8h1"], "uj9aU": [1193, "", "e4c4", "c3a3 c4b4 d3c3 c5b5 c3c6"], "6G4XF": [1152, "", "d4c4", "h5g3 h2g3 c5h5 h1g1 h5h2"], "oqaz8": [1071, "", "b7c6", "h4g6 h7g6 g5h4 g7h6 h4h6"], "tT4dI": [1161, "", "c7d7", "c5c6 d7c7 c2c5 d5d6 d3e4"], "nmaG0": [1127, "", "c3d4", "f7f8 d7f8 f3f7 g8h8 f7f8"], "Nytia": [927, "", "d4c5", "f1c1 c5b6 f2f1q f7f1 c1f1"], "cp1f1": [1161, "", "h2h3", "f5f1 g1h2 f6f2 d2f2 f1f2"], "2lpNJ": [1052, "", "b1b3", "f5f8 e6f8 f2f7 g8h8 f7f8"], "1pOrT": [1157, "", "d7c7", "b7c7 e7c7 b1b7 f7e8 b7c7"], "ICFAf": [1194, "", "g4g5", "a4b3 c2b3 a5a1 b1c2 a1h1"], "9zTaz": [990, "", "d3f5", "h5f5 e6f5 h1h8 f8f7 h8d8"], "EzGqP": [1110, "", "f8e7", "h3h7 f6g7 h7g7 f7g7 h1h7"], "xRo4d": [1050, "", "d7d6", "c5d6 d1d6 c8c1 f1e2 c1b1"], "saGFx": [1075, "", "d4d3", "c8g8 g5f5 c7c8q c4c8 g8c8"], "YM4TV": [994, "", "d6d3", "e4d3 c2d3 e5e1 g1h2 e1c1"], "L9K4R": [1126, "", "d8d5", "e4e8 g8g7 e1e7 c7e7 e8e7"], "f2MLM": [1134, "", "a7e3", "e4f6 g7f6 d3h7 g8f8 d1d7"], "MPbb2": [1143, "", "c4c3", "b8e8 d7e8 b1b8 e8b8 a7b8"], "a4L0q": [1197, "", "d5d4", "e7e2 e1e2 f8c5 d4c5 c6c5"], "ssxT4": [956, "", "c4a6", "c3c1 g1f2 c8c2 e2c2 c1c2"], "rVbho": [1190, "", "g4g5", "f2g4 h3g4 c5f2 h2h3 f2e1"], "ISWOb": [1110, "", "c8d8", "e5g6 h7g6 e2e8 d8e8 d7e8q"], "xQ99d": [968, "", "b6d4", "c6d4 c3d4 d7b5 e2d2 b5a6"], "AWWTV": [1150, "", "g6e8", "g7e8 a4a3 e8d6 c4b3 e7e8q"], "Pm4s5": [1186, "", "f8c8", "e6c8 d6c8 e1e8 f4f8 e8f8"], "jjZkd": [1168, "", "c8d7", "e7e8 d7e8 e3e7 d8c8 e7e8"], "XnGa1": [1151, "", "c1c5", "c8c5 a3c5 a8c8 c5c8 d7c8"], "Ca21a": [1160, "", "h2b2", "a6b8 b2b5 b8c6 e7d7 b7b8q"], "8ociS": [1048, "", "h7g7", "h1h6 g7g8 a1h1 d8g5 h6g5"], "6dQv2": [1150, "", "e7f7", "d7f7 f8f7 d1d8 f7f8 d8f8"], "43eBC": [1078, "", "h3g1", "e6h6 g1h3 e8e1 c1e1 g3e1"], "w5kjB": [929, "", "e1d3", "c4d3 g6d3 c8c1 d3d1 c1d1"], "ThucK": [1063, "", "c5c6", "a1h1 h3g2 a2a1q a5a1 h1a1"], "xG0vK": [1122, "", "d1h1", "d5e3 f2e3 d7d2 c2d2 d8d2"], "hfXrT": [926, "", "f6f7", "d7f7 f8f7 d6d8 f7f8 d8f8"], "6HbQ5": [1175, "", "b2c1", "f7g7 f8g7 h5f7 g8h8 f7g7"], "1qv7e": [1006, "", "a1a2", "e4f2 a2f2 e8e1 f2f1 e1f1"], "c8Hle": [984, "", "e4f5", "e3e2 g1h1 c5f2 e1e2 e8e2"], "00Pc8": [1044, "", "b8d7", "e5d7 c8d7 e1e7 g7f6 e7d7"], "5zTpy": [1095, "", "e6e5", "d5d6 c7d7 f3d5 g8g7 d5c4"], "dNoSb": [1010, "", "b6f2", "e6e8 f7f8 f5e6 g8h8 e8f8"], "bwH1x": [1045, "", "f5h3", "f3e4 g8g6 f1f7 h7g8 e4g6"], "13CyW": [1185, "", "c7a5", "b7c8 d7c8 b1b8 g8f7 b8c8"], "EHAgh": [1188, "", "g2h3", "e4f3 f2f3 e8e3 h3g2 e3f3"], "iLjv5": [1118, "", "d3c3", "c8c3 c2c3 f8c8 c3c8 b7c8"], "YNywJ": [1129, "", "h2h4", "d2e2 e1e2 d4d1 g1g2 d1e2"], "VIe0B": [1187, "", "h6h7", "c7d5 b3d5 c8c3 e3f4 b2f2"], "cprTH": [956, "", "c3c2", "e2c2 c1c2 e3e1 c2c1 e1c1"], "7O8Yt": [1195, "", "a6a4", "d7a4 c3a4 d8d1 h1h2 d1b1"], "v5GBT": [1165, "", "e5d6", "e4e5 d6e5 f3c6 e5d6 c6d6"], "FMDkJ": [955, "", "c1f1", "d3f2 f1f2 d8d1 f2f1 d1f1"], "b19u5": [1039, "", "b2e2", "h4g6 h7g6 a4h4 g7h6 h4h6"], "KxCr6": [1187, "", "e4e2", "d2e2 e1e2 d8d1 e2e1 d1e1"], "TB2p7": [1152, "", "f6d5", "a7c6 b7c6 e3a7 b8a7 e2e4"], "KKCSx": [1055, "", "f8d8", "e6d8 a8d8 e1e8 g8f7 e8d8"], "QZ13o": [1124, "", "a2b2", "a3b2 d4b2 a6a2 f2g1 a2b2"], "b4lv6": [984, "", "b8b2", "f5c8 f6g8 f1f8 b2g2 h2g2"], "MV5oD": [1197, "", "g3h4", "d4e2 e7e2 d6d1 e2e1 d1e1"], "qmaEI": [978, "", "e2f3", "d5f3 f1f3 d8d1 f3f1 d1f1"], "G87Aa": [968, "", "d6d3", "h5g3 h2g3 f7h5 g2h3 h5h3"], "6gT8K": [999, "", "d1e1", "e5f3 f1f3 c7h2 g1f1 h2h1"], "L8Ima": [1008, "", "e5c4", "h4g6 h7g6 f4h4 g7h6 h4h6"], "jBjuk": [1171, "", "f4e5", "a1e5 f3e5 a8a1 g1h2 a1e5"], "bYexA": [1123, "", "c2b1", "a6b8 b1e4 b8c6 e4c6 b7b8q"], "hzX00": [999, "", "a4a7", "d3f2 f1f2 d8d1 f2f1 d1f1"], "gdej0": [1183, "", "f8d6", "f7f8 d6f8 f1f7 e8d8 f7f8"], "W01ri": [1132, "", "g7f7", "h5h8 f8e7 h1h7 f7h7 h8h7"], "5PYSq": [1187, "", "e5e6", "d1f1 c4f1 d8d1 f1d1 g4d1"], "3ZUwi": [1170, "", "g2f2", "e3d1 h1d1 g5e3 f2g2 e3e2"], "VOgf5": [1123, "", "c8f5", "h7f5 f3f5 h2h8 f8f7 h8a8"], "bxbTh": [1035, "", "g5h6", "a6a1 c3a1 a8a2 b1c1 a2a1"], "Vh7Oc": [1142, "", "g7g6", "g3g6 e8g6 f3g3 g6g3 d3g3"], "pvyiR": [1138, "", "h8h7", "g6f8 e8f8 g1g7 h7h8 g7c7"], "5RTXL": [1182, "", "b6b5", "g4f6 g7f6 e4g4 g8f7 g4c8"], "AHdtv": [1169, "", "d3e4", "c6e4 h7e4 c1c8 e4b7 c8d8"], "GOXsi": [1084, "", "d4a1", "d7d1 a1d1 e7b7 f2f3 b7a8"], "bZKFN": [1019, "", "d5g2", "e5f3 b3f3 e7e1 g2f1 e1f1"], "NhmPM": [980, "", "f3d2", "c6d4 e2e3 c8c2 b2b1 c2d2"], "4HYb9": [1192, "", "f3g4", "f5g4 g2g4 a5h5 h3g2 h5g4"], "JO8xV": [1094, "", "a1a7", "a8a7 e3a7 f8a8 e1e2 a8a7"], "wb68n": [1142, "", "d8d4", "g6e7 c6e7 d3h7 g8h7 d1d4"], "ub74S": [961, "", "g4h5", "a1h1 h5g6 a2a1q a7a1 h1a1"], "6JN3F": [1005, "", "g4h4", "c3d4 h4d4 c8c1 d4d1 c1d1"], "Dnc7i": [1035, "", "e1g3", "d4e2 c3e2 d8d1 g3e1 d1e1"], "hV2hS": [977, "", "c6b4", "f6d7 f7d7 f1f8 d7d8 f8d8"], "YA38J": [1089, "", "e4e5", "a1h1 h3g4 a2a1q a7a1 h1a1"], "edRuG": [1086, "", "d6f5", "h5h1 f3h1 h6h2 g1f1 h2h1"], "LCpoY": [1012, "", "d7e7", "d6b8 e7e8 f4d6 f8g8 b8e8"], "UH20E": [940, "", "d5e4", "a8e8 e4d4 a7a8q a3a8 e8a8"], "xhyKZ": [920, "", "g2h3", "b1h1 h3g4 b2b1q b5b1 h1b1"], "rKuTw": [1031, "", "d3e4", "a1d1 d5e6 a2a1q a7a1 d1a1"], "HWD7T": [933, "", "d4d6", "e7d6 d1d6 e8e1 g1f2 e1a1"], "9ng6q": [943, "", "c8c7", "g7h8 c7f7 h8g8 f7f2 h7h8q"], "s4H0X": [984, "", "g2f3", "d4f3 f2f3 d7d2 b2d2 b4d2"], "svQDs": [915, "", "d7b5", "c4d6 c7d6 c1c8 e8e7 c8h8"], "fvdKb": [1006, "", "f6e5", "f4g6 h7g6 d4h4 g7h6 h4h6"], "MJewN": [1067, "", "d8d2", "h4g6 h8h7 g6f8 g7f8 h5f7"], "tmZzo": [1114, "", "e3e7", "f7e7 e8e7 f1f8 h8h7 f8c8"], "Tt8Jl": [923, "", "e1d2", "h5g3 h2g3 f5h5 g2h3 h5h3"], "TuGrJ": [972, "", "d7f7", "c8d8 d5d8 c2c8 d8c8 a6c8"], "V1bmh": [1053, "", "d4d3", "c8f8 f6e7 c7c8q c4c8 f8c8"], "bOH67": [982, "", "c5c2", "e4f6 e7f6 e1e8 g8g7 e8d7"], "myx5L": [917, "", "h7h6", "g5f7 f6f7 g3g6 h6h7 h4h5"], "HilrE": [1073, "", "e5f4", "e4d6 f5d6 e1e6 f7f8 e6d6"], "uWgRn": [979, "", "h5h4", "e4d6 d8d6 e2e8 f8g7 e8h8"], "MliBL": [982, "", "d6f4", "d4f6 f8f6 d1d8 f6f8 d8f8"], "NeEAa": [951, "", "c3f3", "d5f3 f1f3 d8d1 f3f1 d1f1"], "s5Kys": [914, "", "b5a4", "h8a8 a4b3 h7h8q h2h8 a8h8"], "yGRG3": [901, "", "g2g7", "h6g7 h7g7 h3h8 g7h8 h1h8"], "K7LT2": [1121, "", "g3h3", "h8h3 f3h3 a8h8 h3h8 g7h8"], "BAZ3I": [1197, "", "e7f5", "c7d7 d8d7 c1c7 d7c7 a5c7"], "MnTlF": [955, "", "e1e2", "e3e2 a6e2 g5d2 b2a3 d2e2"], "KEGh2": [1135, "", "e6e7", "c8d8 e7d8 c3c8 d8f8 c8f8"], "xuTjz": [1195, "", "d7c6", "h1e1 e3d4 h2h1q c6h1 e1h1"], "o6Fxi": [1061, "", "e5g6", "h2f3 g2f3 c7h2 g1f1 h2h1"], "kXYUn": [1136, "", "a8e8", "d6e7 e8e7 d1d8 e7e8 d8e8"], "1S7xf": [1145, "", "e5e4", "h6h7 f3h3 g6h6 h3h6 g5h6"], "0J7az": [1161, "", "g1h1", "g4f3 h2f3 d7g4 f1g1 g4f3"], "NPbpe": [1023, "", "e2f2", "g5c1 f2f1 h6e3 g1h1 c1f1"], "KMCYj": [966, "", "h3f5", "d5f3 f2f3 d8d1 f3f1 d1f1"], "7rJUu": [1104, "", "e8c8", "h4g6 f7g6 h3h8 g8f7 h8c8"], "gCz6D": [985, "", "g7h8", "d2c3 c2c3 d1d8 e2e8 d8e8"], "RZg6Z": [982, "", "h2h3", "e5f3 f1f3 d6h2 g1f1 h2h1"], "iu72F": [968, "", "d8d5", "e4f6 h4f6 d3h7 g8h8 d1d5"], "TQjLN": [953, "", "f8f7", "d5d8 f7f8 g2d5 g8h8 d8f8"], "noYcc": [928, "", "g1f1", "b1c1 e1c1 b8b1 f1e1 b1c1"], "UCh4h": [972, "", "d3g3", "d4e2 e4e2 d7d1 e2e1 d1e1"], "bruHk": [997, "", "g8h7", "f3g5 h6g5 b3h3 h7g8 h3h8"], "5Hwiq": [949, "", "c2a2", "a8g8 g6f7 a7a8q a2a8 g8a8"], "aULeO": [1060, "", "b6b5", "a4b5 a6b5 a1a8 e8d7 a8g8"], "ov6PI": [955, "", "e1d1", "e3d1 b3d1 e7e1 g1f2 e1d1"], "MOirg": [1158, "", "a1e1", "e7e5 f4e5 f8c5 e3c5 b6c5"], "QjBGb": [1187, "", "b7b6", "f8e8 c8e8 f1f8 e8f8 b4f8"], "mUjGX": [998, "", "d7b6", "f5e6 f6e6 e4h7 g8h8 e1e6"], "HiEXt": [1108, "", "e5e7", "d7e7 d6e7 c8d7 e7e8q d7e8"], "syyAq": [1175, "", "c3c4", "d3f2 d2f2 d6d1 f2f1 d1f1"], "qAoG2": [1180, "", "g8h8", "e6c8 d6c8 e1e8 f4f8 e8f8"], "Ym3Rj": [1170, "", "g1h2", "b8c8 e8c8 b3b8 c8b8 c7b8q"], "7mQsb": [1173, "", "e5e6", "c4e6 e8e6 d3c4 g8f8 c4e6"], "TQ0dq": [1057, "", "c6d4", "g4f6 g7f6 e2g4 g8h8 g4d4"], "7Y6R2": [1185, "", "e8d8", "g5e6 d7e6 d2g5 f8e7 f7e7"], "mjaHN": [1089, "", "b6b7", "f1d1 b7b8q d1c1 c6d7 d2d1q"], "CUWXr": [1007, "", "f5e4", "b8e8 e4d4 b7b8q b1b8 e8b8"], "YjxsX": [1060, "", "b8a8", "c8b7 a8a7 h8a8 a7a8 b7a8"], "mLR0d": [1034, "", "e5d4", "b8d8 d4e3 b7b8q b2b8 d8b8"], "t0Jdd": [917, "", "e6h3", "c7c8 h3c8 a5d8 e3e8 d8e8"], "shfV1": [910, "", "g1h1", "h5g3 h2g3 e8h5 g2h3 h5h3"], "s83ks": [968, "", "b4b8", "c6c7 b8c8 f3b7 c8c7 c1c7"], "Lf7ZT": [1095, "", "c2c5", "d4e6 d5e6 d1d8 b8d8 f6d8"], "6Ufc4": [1151, "", "d4b2", "e4f6 b2f6 f3d5 g8h8 f1f6"], "ARXqA": [1127, "", "f5f4", "e5e1 g1h2 f6e5 f4e5 e1e5"], "aVJDO": [1087, "", "e7f6", "h4g6 h7g6 e4h4 g7h6 h4h6"], "m8lMx": [1071, "", "b4d2", "e3g1 h2h1 a7f2 d3e2 f2e2"], "14Aeu": [1180, "", "f2e3", "f5f1 g1h2 f8f2 d2f2 f1f2"], "k3W0e": [1169, "", "c6e4", "f2f1 g3f1 f8f2 g1h1 f2f1"], "bj1dY": [1004, "", "d4d6", "e6d6 e5d6 f7d5 g2g3 d5c6"], "j2Ez0": [1045, "", "f7g8", "e6d7 b7d7 a6e6 g8f8 e6d7"], "bN570": [1045, "", "g8g3", "h2g3 f2g3 h4h1 f1e2 h1a1"], "qqXU1": [1173, "", "c4c3", "e1c3 e4c3 f1c1 g8f8 c1c3"], "JzwCf": [1017, "", "f2f3", "h5f4 c1f4 h7h2 g2g1 h2e2"], "f60ES": [1166, "", "a3a4", "c3c2 f2c2 b2d4 g1f1 b3b1"], "yHBbM": [1194, "", "d3h7", "g8h7 b4f8 e6e1 d1e1 c8f5"], "mhZAL": [1184, "", "e4e7", "e8e7 g6e7 g8e8 c1e3 e8e7"], "XKCMj": [1167, "", "f7g6", "e4f6 f8f6 g4c4 f6f7 c4a6"], "LyOmi": [1167, "", "e6f8", "h4f3 g2f3 h5h1 g1g2 h6h2"], "rthKR": [1180, "", "c2d3", "c6c5 g2h2 b7e4 d3e4 f5e4"], "Nc02N": [1110, "", "a1f1", "f4f1 c4f1 h6e3 g1h1 f8f1"], "49rbs": [1142, "", "f1g2", "d5e3 f2e3 d6d2 c2d2 a5d2"], "duaEK": [1133, "", "d7b5", "d6c7 c8c7 d1d8 g7f8 d8b8"], "llu3O": [1187, "", "f1f3", "e4f3 e2f3 f5e4 f3e4 e8e4"], "IwtNl": [1080, "", "d4b2", "c2b2 b1b2 c8c1 e1e2 c1h1"], "Y9w6D": [1140, "", "e7f7", "f8f7 h5f7 b8f8 h2h4 f8f7"], "d4NRB": [1078, "", "e5f5", "d3d8 f5f8 c2h7 g8h7 d8f8"], "9Bxbh": [1170, "", "d7e5", "h5h8 g7h8 h4h7 g8f8 h7h8"], "JPHem": [1165, "", "e8f8", "h4g6 h7g6 f4h4 g7h6 h4h6"], "7kz98": [1054, "", "d2c4", "d6c4 d3c4 e7b4 d1d2 b4c4"], "Z2LSU": [1185, "", "d4d3", "e7f7 g7f7 e2e7 d8d7 e7f7"], "xXzp4": [1182, "", "g5g6", "h1c1 c4d4 h2h1q h7h1 c1h1"], "GGF3U": [1186, "", "g2f2", "e3f2 f1f2 e8e1 h1g2 e1c1"], "MpeRQ": [1120, "", "c6e5", "h5f6 g7f6 g4h5 h7g7 g5f6"], "fRsOk": [1164, "", "g1f2", "e2c1 a3c3 c1d3 c3d3 c2c1q"], "msu4K": [1185, "", "g4h5", "b1g1 g5f6 b2b1q b7b1 g1b1"], "Aj4eO": [1099, "", "h4h5", "e3e2 g1h1 c5f2 f7f2 g3f2"], "Fxws9": [1118, "", "f1f6", "e3e1 f6f1 e8e3 g1h1 e1f1"], "UCqFi": [1087, "", "c5d7", "f5d7 d6d7 f1f8 h8h7 f8e8"], "7WkTn": [1073, "", "c7c4", "d6d8 e7e8 g3d6 f8g8 d8e8"], "ZsJrD": [1157, "", "d8e7", "h5h8 g7h8 h2h7 g8f8 h7h8"], "RF01O": [1142, "", "b6b2", "d5d8 f7f8 f3d5 g8h8 d8f8"], "nva9O": [1041, "", "e1c1", "e5f3 g2f3 a5g5 g1f1 g5c1"], "pBOgU": [1192, "", "g1h2", "f6h6 h2g1 d8h4 f2f3 h4h2"], "yBOgf": [1175, "", "b4b5", "f1e1 g1e1 f6f1 e1f1 e2f1q"], "cKMDj": [941, "", "f7f8", "e4f2 f8f2 e5e1 f2f1 e1f1"], "IWISH": [1071, "", "e7d6", "e2e8 g8g7 e1e7 c7e7 e8e7"], "IBobO": [1162, "", "g5h6", "h5g3 h2g3 g4h5 g2h3 h5h3"], "9KGZL": [1180, "", "d5c6", "e5f3 f1f3 c7h2 g1f1 h2h1"], "qYVCV": [983, "", "g7h6", "a8g8 g5f4 a7a8q a3a8 g8a8"], "MWH7q": [1185, "", "c5e4", "e7g6 h8h7 g6f8 d8f8 g3g6"], "NZWBm": [1149, "", "b6d7", "e5f6 d7f6 e2e7 d8c8 e7c7"], "wlKN1": [970, "", "f7g7", "d6e8 e2e8 d4d7 c7d7 d1d7"], "jJQEZ": [1120, "", "e3d4", "e5d4 c3d4 e6e3 g1h2 e3d3"], "dKtnB": [1047, "", "f6e5", "f4e5 f5e5 f1f7 e7f7 e6f7"], "pCzgJ": [1167, "", "a8c8", "d7c7 c8c7 d1d8 g8h7 f3g5"], "bRSaj": [1178, "", "c3c4", "e4d2 d1d2 e5e1 f1g2 e1d2"], "qDwOs": [941, "", "h4h3", "c8d8 e7d8 c1c8 g8f8 c8d8"], "3wL0H": [1165, "", "d7d5", "f5d5 d8d5 d3h7 g8h7 d1d5"], "QdWri": [1170, "", "c6d4", "g4f6 g7f6 e2g4 g8h8 g4d4"], "Y7tPX": [1050, "", "d6c6", "b5c6 c8c6 b1b8 e8e7 b8g8"], "liD7C": [1101, "", "g7h6", "f8h8 h6g7 b8g8 g7g8 h8g8"], "Ycrxp": [1035, "", "f3g5", "f7f1 g2f1 f8f2 g1h1 f2f1"], "4as6d": [983, "", "d6h6", "d5e7 e2e7 d3d8 e7e8 d8e8"], "i4Msd": [1041, "", "e1f1", "d3c1 b1c1 d8d3 f1g1 d3e4"], "rDjWB": [963, "", "h6g6", "h1g1 g6f6 h2h1q h7h1 g1h1"], "hgCin": [1174, "", "f4d3", "c8e8 f7e8 c1c8 e8c8 a6c8"], "uzWY3": [1065, "", "c8g4", "d5e7 e1e7 d3d8 e7e8 d8e8"], "lx7j8": [1200, "", "b6c5", "f3a8 f8a8 d1g4 g8f8 g4d7"], "Of7MP": [959, "", "e4e3", "d6f7 d7f7 d1d8 f7f8 d8f8"], "NLVKX": [1131, "", "b5b4", "e6e7 f6e7 b3f7 g7h8 g6g7"], "Ov7D5": [1079, "", "e2f3", "e5f3 g2f3 c5g5 g1h1 g5g7"], "2HNpw": [1069, "", "a4a2", "d5e7 b7e7 d4d8 e7e8 d8e8"], "elmbj": [1198, "", "a7b7", "e6e1 f4f1 e8e3 g1h1 e1f1"], "VIzhR": [1138, "", "f5g5", "f4e6 g5g6 f1f8 g8h7 f8e8"], "1pGWU": [1163, "", "h6h3", "d8e8 g8f7 e8f8 g7f8 e7e8q"], "6bbHP": [1158, "", "g7e5", "e7h4 e5g3 e8e2 f2e2 h4g3"], "8VNNb": [1200, "", "f7f6", "b5f1 c2d1 b8b1 c1b1 f1d1"], "dBsBQ": [1187, "", "b8b5", "a6a8 g8h7 a1a7 d7a7 a8a7"], "CbgJn": [1168, "", "f7f2", "e5h5 h3g2 e8e2 g2g1 e2f2"], "qnxKo": [1164, "", "c1g1", "e3f3 g1g2 e4e1 b1e1 f3d5"], "wbzpD": [998, "", "f6f2", "d4d1 f2f1 g7d4 g1h1 d1f1"], "tZeyX": [1160, "", "e1e2", "d2e3 e2e3 d8d2 h2g1 d2b2"], "6jzsO": [1015, "", "g7g6", "f5e7 e5e7 f3f8 g8h7 f8e7"], "9MPvH": [1159, "", "h8g7", "e6d6 d7d6 e1e7 g7g8 e7b7"], "9UpmK": [1153, "", "f5g5", "b5c6 b7c6 b1b7 g7h6 b7d7"], "iJOOz": [1154, "", "a7a5", "e3f5 f6f5 f4f5 f8f5 g3c7"], "jEv4I": [1165, "", "e5e7", "g3g2 e7g7 f3g3 g7g3 h4g3"], "8T6lY": [1093, "", "c7d7", "b7c5 e3c5 b1b7 d7d8 b7c7"], "IPDjB": [1190, "", "a7h7", "g3g2 h7g7 f3g3 g7g3 h4g3"], "qvKto": [1168, "", "d2f2", "d3e4 c6e4 d8d1 f2f1 d1f1"], "aj945": [1109, "", "e5d4", "c5d4 d2d4 b5e5 g7g8 e5d4"], "rKFgk": [1200, "", "d8f6", "h1h4 f6h4 a1h1 h4h1 g2h1"], "wPTuV": [1109, "", "c4a6", "c6a6 a7a6 d7b5 d3e3 b5a6"], "bhxNJ": [1131, "", "d6c7", "d4d8 c7d8 b2e5 d8c7 e5h2"], "Ntyrx": [1129, "", "e8f8", "f4f8 e7f8 d2f4 b8c8 d1d3"], "272FU": [1164, "", "d7e8", "f6f7 h7f7 g5f6 h8h7 g3g8"], "6yBwS": [1083, "", "h5g4", "a8f8 f4e3 a7a8q a2a8 f8a8"], "BH0Gy": [1040, "", "f6f7", "d7f7 e8f7 g4c8 f8g7 c8c5"], "M8TEa": [1151, "", "f7f6", "h3h8 g7h8 h2h7 g8f8 h7h8"], "oE7Ef": [1171, "", "d8e8", "h6g7 h7g7 h5h8 f8e7 h8g7"], "HX5te": [1169, "", "f1d1", "f5g3 d3g3 f7f1 d1f1 f8f1"], "T1jmW": [1189, "", "f8e8", "c7e7 e8e7 c1c8 e7e8 c8e8"], "oZ5Fj": [1172, "", "f6f5", "d6d8 e5e8 d2d6 f8g8 d8e8"], "mHuAQ": [1152, "", "e5d4", "e6e8 f7f8 g4e6 g8h7 e8f8"], "uJY5M": [1135, "", "b7c6", "d7e7 e8e7 d1d8 e7e8 d8e8"], "fdJar": [1052, "", "b6a6", "d5d8 f6d8 f3d5 g8f8 d5d8"], "nr02T": [1147, "", "c2e4", "d5e4 e1e4 d8d1 g1h2 d1c1"], "SKMKa": [1111, "", "h4f3", "d7e5 f3e5 d8d4 g1h1 d4e5"], "TA7TA": [1158, "", "d4d7", "e4f6 e7f6 d3h7 g8h7 d1d7"], "7mlsq": [1156, "", "a2a3", "b4c3 a1a2 b8b1 f1e2 b1c1"], "wx0PT": [1000, "", "d8d5", "e4e8 c8e8 d3h7 g8f8 d1d5"], "SoFV2": [980, "", "d6d5", "b8f8 f6g7 b7b8q e5b8 f8b8"], "hYrqU": [1013, "", "g4g3", "a3a8 b7a8 a1a7 b8c8 a7a8"], "NcncH": [1189, "", "g7h6", "d2h6 h4h6 d1d5 g8h8 d5c4"], "IS64k": [1047, "", "h4h3", "c8g8 g4f5 c7c8q c3c8 g8c8"], "7Hxq6": [1005, "", "d8d5", "e6e8 d5d8 f7e6 c8b8 e8d8"], "UGve0": [1192, "", "f6e6", "e8e6 g5e6 h8e8 e5f6 e8e6"], "FZTRh": [1044, "", "c5d3", "h4g6 h7g6 b4h4 h8g8 h4d8"], "vTmW5": [1050, "", "d5d4", "a8d8 d4e3 a7a8q a4a8 d8a8"], "QR9fA": [1027, "", "f5f2", "b7b8 c6b8 a6c8 e1e8 c8e8"], "Yh4Xg": [1128, "", "e1g1", "f6c3 b1c3 e7f6 c3d5 f6a1"], "xAf87": [1187, "", "e7d7", "d5f6 g7f6 a8e4 h7g7 e4c2"], "GkwuQ": [1007, "", "c1c7", "d4c2 c7c2 d8d1 c2c1 d1c1"], "6yrR3": [1091, "", "e3e4", "d4e2 e4e2 d7d1 e2e1 d1e1"], "mlHFg": [1051, "", "c3f3", "e8f8 f3f8 e1e8 f8e8 d7e8"], "hG0us": [1094, "", "c7b8", "d6d8 c2c8 b4d6 b8a8 d8c8"], "USLhg": [1170, "", "d2d1q", "e3d1 c1d1 e2e8 d1d5 c6d5"], "pypR3": [1165, "", "g8h8", "e5f7 f8f7 e1e8 f7f8 e8f8"], "lLJ6W": [988, "", "c8f5", "g6g7 g8f8 g7h7 f5h7 g3g7"], "RnD4u": [1164, "", "a5d5", "d1d5 c6d5 a1d1 d8d7 d1d5"], "XcRaA": [965, "", "e1e5", "d4e2 e5e2 d5d1 e2e1 d1e1"], "RA333": [977, "", "e1e7", "d4e2 e7e2 d5d1 e2e1 d1e1"], "HQNXj": [1052, "", "b6d8", "e7d8 c6d6 d8e8 a6c4 d7d8q"], "3jxEV": [985, "", "e3d4", "b6b8 c8d7 b8e8 d7e8 b3b8"], "flJfW": [1160, "", "g8h8", "e5f7 f8f7 e1e8 f7f8 e8f8"], "VhzYF": [1113, "", "f8e8", "d5e7 e8e7 d2d8 g8h7 d8e7"], "8JFE6": [1051, "", "g8g7", "d2e4 b7e4 d1d4 d8f6 d4e4"], "6Wlpt": [1160, "", "h7h6", "f3f8 g8h7 f1f7 d2g2 h2g2"], "oPa5T": [1075, "", "f8f7", "e2e8 f7f8 f1c4 g8h8 e8f8"], "aJEYS": [1027, "", "e1e8", "d4e2 e8e2 d6d1 e2e1 d1e1"], "spRqh": [960, "", "f1f2", "d5f3 f2f3 d8d1 f3f1 d1f1"], "DB93q": [1007, "", "a6c8", "h4g6 h7g6 g4h4 g7h6 h4h6"], "iRmqe": [1014, "", "b6b7", "c3e2 c2e2 c8c1 e2d1 c1d1"], "wTRsG": [1004, "", "c7d6", "d7e7 d6e7 h3d7 g7f8 d7b7"], "mb2To": [1119, "", "d7d3", "e3d3 d1d3 e5e1 d3d1 e1d1"], "OvLVq": [1060, "", "a8e8", "e4e8 f8e8 c2g6 g8f8 g6f6"], "6TowV": [941, "", "f5h5", "d1e1 f2e1 d7d1 h5g5 d1e1"], "qlRpS": [1046, "", "a6b6", "c3e2 f1e2 c8c1 e2d1 c1d1"], "hFRd7": [923, "", "c4e2", "e3d1 e2d1 e8e1 g1f2 e1d1"], "cOBdk": [965, "", "e3d4", "e5e1 d2f1 d6h2 g1h1 e1f1"], "UPwRe": [938, "", "f2f1", "d3b2 b5b2 d8d1 f1f2 d1h1"], "XzdsB": [911, "", "e4g2", "e5f3 c3f3 e8e1 g2f1 e1f1"], "C5DX7": [937, "", "d4d5", "a1c1 e3c1 a8a1 g1h2 a1c1"], "opc6T": [1031, "", "f2f5", "d3f5 f7f5 d1d7 h7g6 d7b7"], "Gygfw": [1166, "", "f8f3", "e6e8 f3f8 e1e6 g8h8 e8f8"], "bRYQw": [1179, "", "c8f5", "h7f5 e7f5 h1h8 d8d7 h8a8"], "DOdVv": [1153, "", "g2g4", "e8e1 h1g2 c8g8 g2f2 g8g4"], "bV6xs": [1161, "", "e8e4", "f5h3 g2h2 f8f1 e1f1 h3f1"], "yoMM8": [1143, "", "c5b3", "c3a1 b3a1 c8c1 a4d1 c1d1"], "LnTmq": [1133, "", "f5f3", "b1e1 e2e1 b8b1 e1b1 e4b1"], "w9F3V": [1148, "", "f3f4", "e3e2 h5e5 a3e3 e5e3 d4e3"], "5hIbM": [1172, "", "e6c4", "a7c6 b7c6 e3a7 b8a7 e2e7"], "EDeGT": [1153, "", "c8f5", "e4f5 f8f5 e3e6 f5f7 e6g6"], "R4M0j": [1186, "", "a8a6", "f5f6 b8b7 f6f7 a6a8 e5g7"], "KqWnC": [1128, "", "a2c4", "h3h8 g7h8 h2h7 g8f8 h7h8"], "8Urhg": [1098, "", "d8e7", "e4f6 e7f6 f3d5 g8h8 f1f6"], "KbLon": [1198, "", "e1e4", "d3e4 f5e4 d6d1 g1h2 d1b3"], "A61lx": [1181, "", "e8e2", "d5e7 e2e7 d4d8 e7e8 d8e8"], "JFllk": [1122, "", "f6d7", "f2a7 b8c8 a7a8 d7b8 g1a7"], "lhWZ8": [1180, "", "b3d4", "g5c1 f2f1 h6e3 g1h1 c1f1"], "72B3z": [1184, "", "h2h3", "f5f1 g1h2 f8f2 d2f2 f1f2"], "O1Xab": [1133, "", "c6e8", "d6e7 g8e7 d1d8 e8d8 b8d8"], "d0dyn": [1107, "", "f3g5", "h3g2 g1g2 h8h1 e1d2 h1a1"], "YD7iT": [1181, "", "c2c3", "a4d1 h1d1 a5a1 c1c2 a1b2"], "ZsOJh": [1167, "", "g5f6", "d4f3 d1f3 d8d4 g1h1 d4c4"], "Ya8D9": [1183, "", "d7f6", "e5g4 f6g4 e1e6 d6e6 f7e6"], "Ai8bu": [1067, "", "c8c5", "d6d7 f5d7 e5d6 f8g7 d6c5"], "dhrz5": [1154, "", "c1g1", "h5g3 h2g3 g4h5 g2h3 h5h3"], "4uR3Z": [1094, "", "h1g2", "e6e8 f7f8 g4e6 g8h8 e8f8"], "lhXF8": [1165, "", "d8d7", "e4f6 e7f6 f3a8 d7c8 a8c8"], "gxm3C": [1130, "", "g1g2", "d5d4 e3d4 a2d5 g2h3 d5b7"], "OxZeH": [1163, "", "g1f3", "g4f3 g2f3 g5g2 e2e3 g2h1"], "u8fGQ": [1200, "", "h7h6", "c2c8 h8h7 b3c2 d3c2 c8c2"], "dXFdg": [1182, "", "h2h3", "b1f1 f3f1 b8b1 f1b1 a2b1"], "slbVX": [1045, "", "d8d5", "e4f6 e7f6 d3h7 g8h7 d1d5"], "07B8q": [1166, "", "e7c7", "c8c7 b5c7 f8c8 c4d5 c8c7"], "GwPrc": [1107, "", "d5e7", "h5g3 h2g3 e5h5 f7h5 c5h5"], "LdAKk": [1155, "", "h2h4", "h8b8 b7a6 h7h8q h4h8 b8h8"], "F6XLw": [1115, "", "g8h8", "h1h6 g7h6 d1h1 f7f5 h1h6"], "ooXR7": [1167, "", "d8d5", "c5d5 c6d5 c1c8 g8g7 c8b8"], "24DFT": [1187, "", "a8d8", "f4g6 f7g6 f3f7 e7e8 h8g8"], "fZgAM": [1137, "", "g4h5", "b8b6 c5b6 f8b8 b2c3 b8b6"], "oaCAs": [1184, "", "d2d4", "e4d4 d8d4 e2e8 g8f7 e8c8"], "cWWaf": [1120, "", "g8h8", "f6d7 b7d7 f1f6 h8h7 f6e5"], "weR4r": [1140, "", "g1h1", "c3e2 d3e2 c5c1 h1h2 c1b1"], "VvwDk": [1176, "", "f2g1", "e3e1 f6f1 h6e3 g1h1 e1f1"], "PhfEU": [1157, "", "c3b1", "g6e7 g8h8 g5f7 f8f7 e5h5"], "33fsU": [1034, "", "c5c4", "d3h7 g8h7 f3g5 h7g8 d1h5"], "RKkKT": [1039, "", "a5a2", "a8g8 g6f7 a7a8q a2a8 g8a8"], "fo9zU": [1113, "", "f7g6", "f2f8 g8h7 f1f7 c7f7 f8f7"], "j2v9M": [1002, "", "d7d4", "e6e7 b8e8 b3f7 e8e7 e1e7"], "4FF7f": [1078, "", "g5h5", "h1h5 g4h5 b1h1 h5h1 g2h1"], "KwJC6": [1125, "", "g8g7", "d3e4 f5e4 d1d4 g7g8 d4e4"], "kauLU": [1164, "", "c2c3", "a4b5 a6b5 a1a8 f8e7 a8c8"], "7H3WO": [1124, "", "e4c3", "d4e6 f7e6 d1d4 e6e5 d4c3"], "jXRMV": [1128, "", "f8e8", "d7e7 e8e7 d5d8 h8h7 d8e7"], "b2nqb": [1195, "", "d8b6", "f7e7 e8e7 f3f8 a8a7 f8e7"], "dnzdm": [1035, "", "g6h4", "g5f7 e7f7 g2g8 a8g8 g1g8"], "B26MW": [1162, "", "e8f6", "e4f6 f5f6 f3b7 h7g8 e2e8"], "g4Tv8": [1171, "", "g7e5", "c1e1 g1g2 e1f1 g2f3 e2e1q"], "Dpegp": [1115, "", "d3d4", "e5f3 g1h1 e8e1 c1f4 e1f1"], "AXMF6": [965, "", "g1h1", "e4g2 g4g2 d4h4 h1g1 h4e1"], "BnTQR": [1154, "", "e3e4", "e8e4 c3e4 g8e8 e1d2 e8e4"], "2tOxE": [1073, "", "c2c7", "d7c7 c8c7 d2d8 g7f8 d8f8"], "o8NN7": [1029, "", "d8d4", "g6e7 c6e7 d3h7 g8h7 d1d4"], "sO8DV": [987, "", "h8h7", "g6f8 d6f8 h5g6 h7h8 g6g8"], "khsWM": [1108, "", "f3e5", "f6e5 e6e5 f7f4 g2g3 f4e5"], "A3baI": [1066, "", "a1a6", "c6c1 g1f2 c8c2 a6a2 c2e2"], "7gY75": [990, "", "f8f7", "e7g6 f7g6 h4d8 g7f8 d8f8"], "mKl7Q": [1184, "", "g6h4", "f3h4 e7h4 d1h5 h6f7 h5h4"], "RAl0G": [1185, "", "h4g4", "g8g4 g2g4 a8g8 g4h3 g8g1"], "3mrHh": [1130, "", "d5d2", "h5h8 g7h8 h4h7 g8f8 h7h8"], "AG2Mv": [1125, "", "d4c5", "f7f8 g7f8 f3f7 g8h8 f7f8"], "YNgEN": [1126, "", "f6g5", "f4e5 f8f6 e5f6 g6f6 e1e8"], "uXx0R": [985, "", "h2h3", "a1c1 e3c1 a5a1 g1h2 a1c1"], "7TpPZ": [953, "", "g2g3", "f4g3 f2g3 f5f2 g3f2 f8f2"], "VAj1h": [1108, "", "c1c7", "f5f1 g1h2 f8f2 d2f2 f1f2"], "XRyjr": [966, "", "b6c4", "d3c4 c8c4 d2d5 g8h8 d5c4"], "FvHQq": [1180, "", "e2d3", "f5e4 d3e4 f7f1 e1d2 f1a1"], "8Pcdz": [945, "", "f5f6", "c1f1 f6g6 c2c1q c7c1 f1c1"], "zFznz": [1189, "", "d2b1", "c6b5 c4b5 c8c1 g1h2 c1b1"], "TNPoH": [1172, "", "h2h1", "g4f2 e3f2 d7h3 f1h2 h3g2"], "GIiRN": [1073, "", "b6a7", "f5g3 f2g3 d7h3 h1g1 h3g3"], "WaS7o": [932, "", "b2a1", "c4f1 a1f1 c7c1 a5a1 c1f1"], "yH0TI": [998, "", "b6f2", "c6e7 e8e7 c1c8 e7e8 c8e8"], "E5jy2": [986, "", "e4e3", "c8f8 f6e5 c7c8q c3c8 f8c8"], "Raj6r": [1087, "", "g3e5", "h3h1 g2g1 d7h3 f1e1 h1g1"], "PTSup": [957, "", "a3b5", "d3e2 g1e2 d6d1 a1d1 d8d1"], "C1yHV": [922, "", "e5f5", "e4e8 g8h7 b7e4 g7g6 e4f5"], "PMXY5": [963, "", "h8e8", "e4e8 d7e8 b1f5 c8d8 a1h1"], "i7M1E": [1141, "", "d2c3", "c8e6 e1e6 b8c8 c3b3 c8c1"], "NoGrF": [934, "", "g4h5", "e4f3 f2f3 e8e1 f3f1 e1f1"], "zkjBD": [953, "", "g6g7", "b1g1 g7f6 b2b1q b7b1 g1b1"], "ucA8G": [970, "", "d3c4", "d5e3 c2a4 d8d1 a4d1 e3d1"], "lFGUe": [983, "", "d7e6", "h8e8 e6d6 h7h8q h4h8 e8h8"], "k994u": [944, "", "f3f2", "d1e1 f2e1 d7d1 h1g1 d1e1"], "Wf8uU": [948, "", "d5b4", "h6f7 h7f7 h5h8 f7f8 h8f8"], "5HYfU": [983, "", "c7g3", "h5h8 g7h8 e2h5 e8d8 h5h8"], "88Osw": [944, "", "c4c5", "d4e2 a2e2 d8d1 e2e1 d1e1"], "PtzCk": [971, "", "f8d8", "d5d8 c6d8 f3d5 g8f8 d5c4"], "gPRzY": [921, "", "f7f6", "h4g6 h7g6 g3h4 g7h6 h4h6"], "uSD8P": [990, "", "c1c7", "d3e4 f6e4 d8d1 h3f1 d1f1"], "k2JkZ": [959, "", "f3g4", "a1g1 g4h4 a2a1q a7a1 g1a1"], "eU8GS": [955, "", "e4e3", "f6g7 g8g7 f2f8 e6g8 f8g8"], "4DTkz": [999, "", "h5f3", "d5f3 f1f3 d8d1 f3f1 d1f1"], "2M4l5": [994, "", "e5d6", "e4e8 d8e8 d3h7 g8h7 d1d6"], "WIcDc": [927, "", "g5f6", "h1f1 f6e6 h2h1q h7h1 f1h1"], "a4FUx": [939, "", "h2h1", "e5e1 h1h2 e1d1 f3d1 e8e1"], "N4lWy": [960, "", "e5c6", "b5c6 c1c6 b8b1 e1e2 b1h1"], "eqGPO": [937, "", "e5b5", "e4f6 h8f6 e1e8 d8e8 d7e8q"], "6oRD4": [910, "", "g6h6", "b1h1 h6g6 b2b1q b3b1 h1b1"], "VjxeI": [1007, "", "f1g2", "h5g3 h2g3 g5h5 g2h3 h5h3"], "NxqBX": [910, "", "f4h6", "e5f7 f8f7 e1e8 f7f8 e8f8"], "7UheH": [968, "", "f3e2", "d2e2 e1e2 d8d1 e2e1 d1e1"], "42oAB": [938, "", "c4c3", "a8h8 h6g5 a7a8q a3a8 h8a8"], "seEyN": [992, "", "c6b4", "e4e8 d7d8 d3f5 c8b8 e8d8"], "hZE9t": [974, "", "b3a1", "c4d3 b1d3 c8c1 g1g2 c1a1"], "QtatG": [937, "", "d1d3", "d4e3 d3e3 d8d1 e3e1 d1e1"], "Fzcqx": [1190, "", "g6f4", "h5e8 g7f8 h1h8 g8h8 e8f8"], "wLhDH": [1142, "", "a8g8", "h4g6 h7g6 g5h4 g7h6 h4h6"], "0SbHv": [1198, "", "f2g3", "a1f1 f3g2 a2a1q a8a1 f1a1"], "3IUCF": [1150, "", "g4h5", "g5c1 f2f1 h6e3 h3e3 c1e3"], "ljl5R": [1125, "", "c2f2", "e3c1 f2f1 h6e3 g1h1 c1f1"], "IJHjL": [1173, "", "a8a7", "e4h7 a7h7 c2g6 h7g7 g6g7"], "Oi9qO": [1160, "", "e7f6", "e4h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "BikUA": [1199, "", "d3b1", "h2f3 d5f3 h5h2 g1f1 h2h1 f1e2 h1b1"], "HIRZ8": [1184, "", "e7g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "96raa": [1091, "", "e5e1", "a1b1 e1b1 a5a1 b1a1 a8a1 g1h2 a1b2"], "CvOHR": [1183, "", "f3f6", "d6f6 f1f6 d8d1 g1f2 d1f1 f2g3 f1f6"], "BB6m4": [1186, "", "e7e5", "d5e5 e8e5 d3e4 e5e4 d1d8 h8h7 d8c8"], "Ar3Qo": [1172, "", "f7h7", "f4e2 g1h1 d3f2 f1f2 d8d1 f2f1 d1f1"], "BUs4i": [1081, "", "f6g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "QxagO": [1048, "", "d5f4", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "Vu16l": [1186, "", "f8e8", "e4f6 g7f6 d3g6 g8f8 f1f6 e5f6 g6f6"], "3ltsS": [1191, "", "g2g3", "e6e2 d2e2 f3e2 a5a6 e1f3 h2g2 e2e1q"], "9DhxU": [957, "", "f7g6", "e4e8 d7f8 e8d8 f6d8 e1e8 h8g8 e8d8"], "A6VG8": [1093, "", "f8d8", "d3d8 e7d8 e6e7 d8e8 b3f7 e8f7 e7e8q"], "iydSV": [1171, "", "e6a2", "d3g6 f7g6 d1d7 a2f7 d7f7 f8f7 f6f7"], "ZBIke": [1132, "", "g3g4", "e5e1 h1h2 f6e5 g2g3 f8f2 h2h3 e1h1"], "mOZGO": [1121, "", "e2g4", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "Klt8l": [996, "", "a8f8", "d4f6 f8f6 d1d8 c7e8 d8e8 f6f8 e8f8"], "0TUVH": [939, "", "g6f6", "e5d6 f6d6 e1e8 h8g7 e8e7 g7g8 e7b7"], "4BA79": [1035, "", "f7f5", "e2c4 b6e6 c4e6 e8e6 c1c8 e6e8 c8e8"], "Rb6Vs": [1143, "", "e3g4", "h7f6 g4f6 h2h8 g8f7 h1h7 f6h7 h8h7"], "knGLz": [997, "", "h5d1", "d3f2 h1g1 f2d1 g7h6 d1e3 h6e3 d2d1q"], "nZkX4": [1090, "", "d4e5", "a2c1 e5c7 c1e2 g1f2 c2c1q c7c1 e2c1"], "LHn8n": [1087, "", "e5c7", "d8d1 f3e1 d1e1 g1h2 h6g4 h3g4 b6h6"], "hjMXj": [1189, "", "d1g4", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "qAOJs": [1123, "", "d5f4", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "K5Mxg": [1131, "", "b3b4", "c6g6 g1h1 c2e4 e1e4 c8c1 e4e1 c1e1"], "tulfE": [1127, "", "g7f6", "d1g4 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "RMVSy": [975, "", "b7b6", "d3h7 g8h8 d6f7 f8f7 d1d8 f7f8 d8f8"], "zQ00P": [1147, "", "e1e6", "f7e6 e8e6 f2f8 h8h7 g5g6 e6g6 h5g6"], "Y6Im1": [1189, "", "d1d5", "g6g4 h3g4 g8g4 g1f1 g4h4 f3h4 e6h3"], "ag6Yq": [1197, "", "f7g6", "f4g6 h7g6 d2h6 h8g8 g3g6 e4g6 h6g6"], "Iwety": [1199, "", "e8e2", "b5e2 e1e2 b4b8 g8h7 b8a8 d4c3 b2c3"], "ESVM1": [1092, "", "h6g4", "f6d7 d8d7 f2f8 d6f8 f1f8 d7d8 f8d8"], "Hpe3k": [1155, "", "f1f2", "e7e1 f2f1 f8c5 c1e3 c5e3 b3e3 e1e3"], "a39BI": [1143, "", "h2h4", "d3d2 a7d7 a3d3 f2f3 e4e3 d7d3 e3d3"], "Npxxy": [1139, "", "e7e8", "d8e8 e6e8 d1d8 a6a1 g1f2 a1a8 d8e8"], "Zs7uj": [1089, "", "g1h2", "c3c2 d1c1 f6b2 c1b2 c2c1q b2c1 c6c1"], "Z3L6G": [1160, "", "g3f4", "d1h5 h8g7 e1g1 e3g3 g1g3 f4g3 a1g1"], "WVNqG": [1183, "", "f1f7", "c4c1 d6d1 c1d1 d7d1 c8c1 d1c1 b2c1"], "l9ydU": [1193, "", "b6b2", "f5g6 f7g6 h3d7 f8f7 d7f7 h7h8 f7g7"], "itwVg": [965, "", "a1a5", "a8a5 c6a5 f8a8 a5c6 a8a1 f1e2 a1c1"], "fAZSo": [1053, "", "c7c5", "d5b7 b8b7 d1d8 b7e7 d8e8 e7e8 e1e8"], "rzcJo": [1173, "", "d5e3", "c4f7 g8h8 f7e8 d8e8 f4f8 e8f8 f1f8"], "LzDg7": [943, "", "b4b3", "a2a8 d4b6 a8d8 b6d8 a1a8 b3b4 a8d8"], "JDoTT": [1146, "", "f3g4", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "YmqKF": [1078, "", "c3c2", "c6e8 g8g7 e8f8 g7f6 e7e8q d3f1 g2f1"], "r03w3": [1001, "", "a3c4", "d6d1 f2f1 e7c5 c4e3 c5e3 g1h1 d1f1"], "TCK9k": [1046, "", "f3g4", "e5h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "NoHVm": [1198, "", "f1g2", "h5d1 g2f1 h8h1 g1h1 d1f1 h1h2 f1a6"], "JmkSu": [1199, "", "c5d4", "e4f6 b6f6 b1h7 g8f8 h7h8 f8e7 h4e4"], "IWlu9": [1197, "", "d8c7", "h5f6 g7f6 d1h5 e8d8 e5f7 d8c8 f7h8"], "zQL8q": [1083, "", "g2g3", "e6d5 d1d5 e8e1 h1g2 e1e2 g2h3 e2b2"], "ZR6DU": [1172, "", "c4f7", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "vUXcC": [1112, "", "d7c7", "b1b4 e7b4 a4b4 a5b4 a1a8 c8d7 a8h8"], "Qol5F": [1138, "", "e1e2", "c4c1 e2e1 e6c4 e4d3 c4d3 f1g1 c1e1"], "cCkuQ": [1129, "", "e8c8", "f6a1 f2f1 g7d4 c4e3 d4e3 g1h1 a1f1"], "5NfIH": [1012, "", "g1h1", "e4g3 h1h2 g3f1 c1f1 f2g3 h2g3 f5f1"], "n31IQ": [1132, "", "e3d5", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "dQYvN": [1189, "", "d1d2", "e3c2 d2c2 e5e1 d4d1 e1d1 c2c1 d1c1"], "gHGvQ": [982, "", "b1f1", "d3f2 f1f2 d4d1 e7e1 d1e1 f2f1 e1f1"], "ppOwQ": [1157, "", "f6h5", "f5h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "NwdmR": [1037, "", "e2f2", "d4e3 f2e3 d8d1 g1f2 d1f1 f2g3 f1g2"], "MospD": [1104, "", "h4d4", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "aw5Ho": [1025, "", "a6a3", "a1e1 e4f5 a2a1q a3a1 e1a1 g3g4 h5g4"], "xezkK": [1147, "", "g8h7", "f3g5 h6g5 d1h5 h7g8 c1c8 a5d8 c8d8"], "LF6aA": [1186, "", "b5d5", "e4e8 g8g7 e2e7 c7e7 e8e7 d4d3 c2d3"], "UefFp": [1182, "", "a1b1", "b8b1 h1h2 b1g1 h2h3 g1h1 g3h2 c5g1"], "YYuib": [1184, "", "d2d5", "h2f3 d1f3 h8h2 g1f1 h2h1 f1e2 h1e1"], "ZSvoQ": [1140, "", "d5e4", "f4f1 e1f1 g5e3 f1f2 f8f2 g1h1 f2f1"], "FI8Aq": [983, "", "g4g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "qyzYL": [1162, "", "d2b2", "a7a4 b3c3 a4c4 c3d2 a8a2 b2a2 c4a2"], "PFMNb": [1181, "", "d7c6", "d5c6 c7c6 d8d1 g1g2 d1d5 f2f3 d5c6"], "1pYow": [1057, "", "a8a6", "c6e7 g8h8 d6f7 f8f7 d3d8 f7f8 d8f8"], "arsEh": [1145, "", "h5g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "cnZT3": [1140, "", "a3c5", "c6e7 g8h8 d6f7 f8f7 d1d8 f7f8 d8f8"], "GmpOP": [961, "", "h2h4", "d5d1 b7e7 d1e1 e7e1 d8d1 e1d1 f3d1"], "T26Kc": [963, "", "c7g3", "e3e2 g3e1 c5f2 e1f2 e2e1q f2e1 e7e1"], "ArGFe": [1138, "", "f4e5", "d3h7 g8h8 d6f7 f8f7 d1d8 f7f8 d8f8"], "paJh1": [1151, "", "b1b7", "c2f2 f1f2 c3c1 e6e1 c1e1 f2f1 e1f1"], "cMSQH": [1103, "", "b5b7", "d5g5 g1h1 d3f2 f1f2 d8d1 f2f1 d1f1"], "gEyqC": [1139, "", "h3g2", "e5f7 c7f7 e2e8 c8e8 e1e8 f7f8 e8f8"], "Pvftu": [1079, "", "e3e6", "d6e6 e1e6 d8d1 g1g2 g6f4 g2g3 f4e6"], "ilTC3": [1112, "", "e3e5", "d4f3 g1f1 f3e5 e1e5 a8h1 f1e2 h1c1"], "RxAko": [1051, "", "c7a7", "c2d3 d7d3 c8c1 d3d1 c1d1 f3e1 e6e1"], "4C1bC": [1181, "", "c2d3", "c5c1 f2f1 f8c5 d3d4 c5d4 g1h1 c1f1"], "bDeDa": [1176, "", "g8f8", "d6d8 e7e8 f4d6 f7e7 d6e7 f8e7 d8e8"], "jQ9Qk": [1026, "", "c3d4", "e5f3 g1g2 f3e1 c1e1 e2f3 g2f3 e8e1"], "7T4T4": [1071, "", "b8a8", "d5b6 a8a7 b6c8 b7c8 c7b6 a7b6 c1c8"], "iWKzd": [1189, "", "f4g5", "b6b7 g5f4 a5c7 f4c7 c6c7 e2f2 b7b8q"], "wNrg5": [1187, "", "b2c2", "h6g6 h7g6 h1h8 g8f7 h8h7 f7e8 h7b7"], "j8PhE": [1134, "", "c8e6", "d4e6 e8e6 d2d8 a8d8 d1d8 g7f8 a3f8"], "LvlXQ": [1196, "", "d6g3", "d3e1 e2e1 d8d1 c7c8 g7f8 e1d1 b3d1"], "CYZnB": [1182, "", "g8h7", "f3h5 h7g8 e3h3 f6h4 h3h4 d8h4 h5h4"], "JeYjf": [1176, "", "d8e8", "e6f8 e8f8 e1e8 f8e8 h5e8 b8a7 e8g8"], "7HRUl": [1163, "", "b1a3", "e7a3 a1a3 b7b1 c2c1 b1c1 f4c1 b8b1"], "o6T54": [1194, "", "c6d5", "e4h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "mopNN": [1106, "", "e1c1", "d3d1 g2e1 d1c1 b2c1 d8d1 g1f1 d1c1"], "6PKcI": [1172, "", "c7c6", "e4h7 g8f8 h7h8 e7g8 b1h7 f6e5 h8g8"], "7JkG4": [1199, "", "f4d4", "d1d4 c6d4 f1d1 f8f4 g2g3 f4e4 f2f3"], "durjv": [1148, "", "e4g6", "f4f1 d1f1 g5e3 f1f2 f8f2 g1h1 f2f1"], "rYM8h": [1174, "", "c2c5", "f4f1 a1f1 g5e3 f1f2 f7f2 g1h1 f2e1"], "R8N0W": [1116, "", "c7b7", "f6g4 h3g4 e6h6 g3h4 h6h4 h2g1 c8c1"], "Z9r89": [1147, "", "e8g8", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "r9IKK": [1012, "", "d6c5", "f5e7 e4e7 g4c8 e7e8 c8e8 c5f8 e8f8"], "G7vid": [1024, "", "e4e3", "d8f7 g6f7 d1d8 f7e8 d8e8 f6f8 e8f8"], "h83qu": [1008, "", "c8d7", "e7g6 h8h7 g6f8 a8f8 f7g6 h7g6 f3f8"], "WlIXw": [1183, "", "e2f2", "f1f2 b6f2 d1f1 f7e6 f1f2 d5c3 d2c3"], "EthlE": [1139, "", "d4b6", "d5f6 g8g7 f6e8 a8e8 e7f6 g7f6 e1e8"], "fcurJ": [1135, "", "c8f8", "d4f6 f8f6 d1d8 f6f8 d8f8 c4g8 g3g8"], "fvKoN": [997, "", "g8h8", "f4e5 f7f6 e5f6 f8f6 e1e8 f6f8 e8f8"], "iu8w9": [1123, "", "h5h6", "c3c2 a6c6 d3c3 c6c3 d4c3 h6h7 c2c1q"], "fwHs2": [1042, "", "c3a5", "f4e2 f3e2 g5c1 e2d1 c1d1 a5e1 d1e1"], "18vUj": [1145, "", "a8a6", "f4b8 g7f8 e3h6 a6a1 g1h2 a1g7 h6g7"], "pJ4Od": [1178, "", "c8d8", "e4f6 d8f6 f3c6 e8e7 h6g5 f6g5 f4g5"], "03CBj": [1196, "", "g2a2", "e1h1 a2h2 h1h2 h3h2 c1h1 h2h1 e4h1"], "lznoS": [1134, "", "e1e8", "d4e2 e8e2 d6d1 e2e1 d1e1 g3f1 e1f1"], "VDVdj": [1049, "", "f6g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "GeIVZ": [1199, "", "b4e4", "d8c8 b8c8 d1d8 e4e1 g1h2 e1e5 f6e5"], "X9Ob6": [1099, "", "d5c5", "b6b1 c5c1 b1c1 d1c1 b8b1 e2e1 b1c1"], "aSf0m": [1172, "", "d8d6", "e3a3 d6a6 d2e3 c7c5 e3c5 a7a8 a3a6"], "Nvvyo": [1074, "", "h2h4", "d5e7 f5e7 b3e6 c8b8 d1d8 e7c8 d8c8"], "gAWqo": [1164, "", "c3b4", "b6b5 c4d4 a7d4 d1d4 b8a7 g3f2 a7d4"], "v4ajI": [1154, "", "d8g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "JoglI": [1084, "", "c4f7", "c7f7 f8f7 c1c8 d2d8 c8d8 f7f8 d8f8"], "Mzcn4": [1038, "", "e4e3", "f7d7 d8d7 f1f8 e3e8 f8e8 d7d8 d2d8"], "gdnbA": [1003, "", "g3c7", "d3f2 f1f2 d8d1 c3e1 d1e1 f2f1 e1f1"], "sSbaw": [1097, "", "f7f5", "e8f8 h7f7 f8f7 f5f7 b8f8 f7f8 e6f8"], "uf9dc": [1160, "", "c6c5", "b2d3 c5a5 b8b1 g1g2 d3e1 g2f1 e1f3"], "RHf4O": [1189, "", "e2c1", "c4e3 c3e3 a6f1 g2h2 d2f3 e3f3 f1f3"], "vVIMv": [1122, "", "f2g1", "b7b1 g3f3 b1c1 d1c1 b8b1 c1b1 a2b1"], "EgAMn": [1177, "", "d7f6", "e4f6 e7f6 d3h7 g8h8 g5f7 f8f7 h5f7"], "Gq6Y6": [1167, "", "h2h3", "c6d6 d1d6 c8c1 g1h2 h6f4 g2g3 f4d6"], "dBSuI": [1145, "", "a5a7", "a8a7 a2a7 c8a8 a7a8 b6a8 a1a8 g8h7"], "r7xrN": [1034, "", "f7f5", "g8h8 g6f7 g5g6 f7g6 h8g8 f5f4 h7h8q"], "w51XV": [1184, "", "g2g3", "e6e1 g1g2 e1b1 a1b1 e8e1 b5c3 e1b1"], "gbQtQ": [1129, "", "f1f2", "f6a1 f2f1 g7d4 e7e3 d4e3 g1h1 a1f1"], "x0cho": [1174, "", "b6c6", "c2h7 g8f8 h7h8 e7g8 b1h7 c6c1 g1h2"], "adhnO": [1101, "", "f8d8", "d5d8 c8d8 c6c7 d8c8 e4b7 c8c7 c1c7"], "HRmxz": [1169, "", "a1a3", "c3e2 g1h1 d3f2 f1f2 d4d1 f2f1 d1f1"], "zwkR0": [1134, "", "f6g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "gZqRA": [1008, "", "d4d2", "b7b8 d2d8 b8d8 a5d8 b1b8 g8f7 b8d8"], "eM70G": [969, "", "c7e6", "e2g3 h1h2 g3f1 a1f1 f2g3 h2g3 f8f1"], "dR38D": [1087, "", "g2g3", "c1d1 d3d1 c8c1 a7a8 h8h7 d1c1 g5c1"], "RQS3c": [1169, "", "d7e8", "d6d7 e8d8 g3c7 d8c7 d7d8q c7d8 d4d8"], "aTUtp": [1169, "", "c5e5", "f6g4 h3g4 d8h4 h2g1 d4d1 e2e1 d1e1"], "3LbA0": [1113, "", "f8f7", "d5d8 f7f8 g2d5 c5e6 d5e6 g8h8 d8f8"], "vIQU7": [981, "", "d8d5", "b6b8 d5d2 b8c8 f5c8 b1b8 d2d7 b8c8"], "AO4bc": [989, "", "f6d7", "b8c8 a6c8 b3b8 d7b8 c7b8q c8b8 e5b8"], "ed5IE": [949, "", "d5d6", "e7d6 d1d6 e8e1 g1h2 g7e5 g2g3 e5d6"], "VTCEp": [1038, "", "a8e8", "f2f8 g8h7 f8e8 e5g6 e8h8 g6h8 e7e8q"], "4THwD": [1150, "", "b8b2", "d4d8 c6e8 e3c5 g8e7 c5e7 f8g8 d8e8"], "JTWXI": [946, "", "h6g7", "d1d8 b6d8 f1d1 d8b6 d1d7 g7f8 d7b7"], "oK0Gu": [940, "", "f6g5", "a1g1 g5f6 g1g6 f6g6 h8g8 f5f4 h7h8q"], "5ZVKk": [1157, "", "e4e3", "c6c7 a3c3 h6c6 c3c6 b5c6 e3e2 c7c8q"], "crZ3C": [1116, "", "e5f5", "g7g6 f5f3 c1f1 f3f1 c7c1 f1c1 e3c1"], "RkboJ": [1068, "", "e1c1", "h2f3 e2f3 g3h2 g1f1 h2h1 f1e2 h1c1"], "BBchZ": [1100, "", "e1f1", "g6g7 f1g1 f5g6 g1g6 f6g6 a7c6 g7g8q"], "6ShXE": [1186, "", "f6c6", "d5c6 b7c6 d1d7 a7b6 d7g7 h7e4 f3e4"], "r6PZ0": [1080, "", "f4g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "vaToy": [1137, "", "d2c4", "d6h2 g1h1 d3f2 f1f2 d8d1 f2f1 d1f1"], "YZ3bj": [984, "", "g5f4", "a8f8 f4g3 a7a8q a2a8 f8a8 f3f2 g1f1"], "7yPKd": [931, "", "e1e3", "d6d1 f2e1 d1e1 e3e1 d8d1 g1f2 d1e1"], "aYbfX": [1017, "", "f2e3", "d4e3 e1e3 d8d1 e3e1 d1e1 h3f1 e1f1"], "pDRNR": [1192, "", "c3b5", "c5d4 b5d4 c6c1 h1h2 c1f4 h2g1 f4d4"], "CZSWd": [1188, "", "c7c2", "c1c2 c8c2 f4f8 g8h7 f1f7 d7f7 f8f7"], "uGOFZ": [1200, "", "e7b4", "b1b2 b4b2 a1b1 b2b1 d2b1 b8b1 g1f2"], "2S8nG": [1095, "", "g4f5", "d3f5 g6f5 d2d8 g8g7 g5e6 g7g6 e6c5"], "IZow3": [1051, "", "f8f7", "d5a8 f7f8 g2d5 c5e6 d5e6 g8h8 a8f8"], "wtSbO": [1044, "", "d3d4", "b6d4 b3d4 b8b1 g1h2 b1a1 d5a2 a1a2"], "LrLal": [1091, "", "f1f7", "d3f2 g3f2 d5d1 f2e1 d1e1 f7f1 e1f1"], "giSd3": [1011, "", "f1f2", "d4d1 f2f1 g7d4 e7e3 d4e3 g1h1 d1f1"], "rRsRg": [1193, "", "d7b7", "h4f2 g1h1 f2f1 e2g1 f8f2 d2f2 f1f2"], "I5vJ3": [1198, "", "e1f3", "e5f3 e2f3 e7e1 d1e1 e8e1 a1e1 h4e1"], "JvhMQ": [1159, "", "d4d3", "f6f7 a2f2 g6f6 f2f6 g5f6 d3d2 f7f8q"], "9WsL4": [1183, "", "f8e8", "e4f6 e7f6 e5f6 d8f6 g3e5 b6d7 e5f6"], "RRMD8": [1167, "", "d3d5", "e4d5 d1d5 e5f3 g2f3 d6h2 g1h2 d8d5"], "eVQNJ": [1178, "", "b4b6", "f6f7 b6b8 h4e7 f5e6 f7f8q b8f8 e7f8"], "77OZy": [1124, "", "d3e4", "h5g3 h2g3 f7h5 g1h2 f4g3 e4g6 h5g6"], "x3r45": [1129, "", "f4f2", "c8c1 a1a2 e2c4 b2b3 e8e2 f2e2 c4e2"], "d2gdi": [1079, "", "g6e4", "f3f8 g8h7 f1f7 d7f7 f8f7 g5e3 g1f1"], "0BO6u": [1187, "", "h1h4", "d4g1 e2f1 c5f2 e1e2 g1f1 e2f1 f2h4"], "3PRkp": [1057, "", "g5e5", "e4h7 g8h8 d6f7 f8f7 d1d8 f7f8 d8f8"], "sqE56": [1195, "", "f5d6", "c2e2 e1e2 c8c1 g1h2 f6e5 g2g3 e5d6"], "KVFGX": [1057, "", "e7g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "U5opx": [1124, "", "f5g3", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "ywUnd": [1177, "", "a8c8", "c6e7 g8f8 e7c8 d7c8 d6d7 c8d8 d5d6"], "z9hnv": [988, "", "f6g5", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "hkICv": [1137, "", "b6d4", "d1d4 e5d4 e4e5 f6g6 f3e4 e7e5 e4g6"], "0xVF4": [1195, "", "e5d3", "h7f6 e6f6 g5f6 d6f6 c1h6 d5h5 h4h5"], "jiIw5": [1158, "", "g4g6", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "MryA4": [1156, "", "f3g4", "d6h2 g1h1 e4f2 f1f2 e8e1 f2f1 e1f1"], "yFmps": [1089, "", "g5g2", "a7f7 f8f7 a1a8 d2d8 a8d8 f7f8 d8f8"], "wPv6l": [1129, "", "c7c6", "d5e7 f8e7 d3d7 e6d7 d1d7 b7a6 d7e7"], "QfBhL": [1159, "", "h2f4", "d2d1 f4g3 d1e1 g3e1 d8d1 b1f5 d1e1"], "Rgfyr": [1099, "", "g7g6", "e4e5 d8f6 e5f6 f8f6 e1e8 f6f8 e8f8"], "pGa7o": [941, "", "f2g1", "d2d1 e3e1 d1e1 g3e1 d8d1 e1d1 h5d1"], "6rGBz": [1133, "", "b6d4", "d3h7 g8h8 e5f7 f8f7 e1e8 f7f8 e8f8"], "QdXhi": [1169, "", "e2d1", "b8b1 d1c2 b1g1 f6g7 g1c1 e3c1 g2g1q"], "FB2MA": [1194, "", "e3d3", "d1d3 f5d3 f1d1 g7g5 d1d3 c6c1 f3g1"], "OduAV": [1127, "", "c5c6", "f5g3 h2g3 e5h5 h1g1 b2d4 d2e3 d4e3"]}, "ratingMin": 900, "ratingMax": 1200, "themes": [{"id": "clearance", "number": 1, "name": "Освобождение линии или поля", "weight": 1.0}], "themeWeights": {"clearance": 1.0}, "moveWeights": {"2": 30, "3": 50, "4": 20}, "puzzlesPerClick": 10, "storageKey": "usedPuzzles:4-clearance"};
+
+const puzzles = appData.puzzles;
+const themeWeights = appData.themeWeights;
+const moveWeights = appData.moveWeights;
+const puzzlesPerClick = appData.puzzlesPerClick;
+const storageKey = appData.storageKey;
+const lastSelectionStorageKey = storageKey + ":lastSelection:" + document.title;
+const validationData = appData.validationData;
+let validationStatuses = [];
+let validationStates = [];
+let validationGeneration = 0;
+let validationController = null;
+let rateLimitedUntil = 0;
+
+const themes = Object.keys(themeWeights).filter(
+    theme => (themeWeights[theme] || 0) > 0
+);
+
+// Exclude move counts without puzzles in positive-weight themes.
+const moveCounts = Object.keys(moveWeights)
+    .map(Number)
+    .filter(count => moveWeights[count] > 0
+        && themes.some(theme =>
+            (puzzles[theme]?.[count] || []).length > 0
+        )
+    );
+
+function renderSettings() {
+    const themesBody =
+        document.getElementById("themes-body");
+
+    for (const theme of appData.themes) {
+        const row = document.createElement("tr");
+
+        const numberCell =
+            document.createElement("td");
+        numberCell.textContent = theme.number;
+
+        const nameCell =
+            document.createElement("td");
+        nameCell.textContent = theme.name;
+
+        const weightCell =
+            document.createElement("td");
+        weightCell.textContent = theme.weight;
+
+        row.append(
+            numberCell,
+            nameCell,
+            weightCell
+        );
+
+        themesBody.appendChild(row);
+    }
+
+    const movesBody =
+        document.getElementById("moves-body");
+
+    for (const moveCount of moveCounts) {
+        const row = document.createElement("tr");
+
+        const countCell =
+            document.createElement("td");
+        countCell.textContent = moveCount;
+
+        const weightCell =
+            document.createElement("td");
+        weightCell.textContent =
+            moveWeights[moveCount];
+
+        row.append(
+            countCell,
+            weightCell
+        );
+
+        movesBody.appendChild(row);
+    }
+}
+
+renderSettings();
+
+if (
+    themes.length === 0
+    || moveCounts.length === 0
+) {
+    alert(
+        "По заданным условиям "
+        + "не найдено ни одной задачи"
+    );
+}
+
+let used = new Set(
+    JSON.parse(
+        localStorage.getItem(
+            storageKey
+        ) || "[]"
+    )
+);
+
+function renderLastSelection(ids) {
+    const section = document.getElementById("last-selection");
+    const list = document.getElementById("last-selection-list");
+    list.replaceChildren();
+    validationStatuses = [];
+    validationStates = [];
+
+    ids.forEach((id, index) => {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.textContent = "#" + id;
+        link.href = "https://lichess.org/training/" + encodeURIComponent(id);
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        const status = document.createElement("span");
+        status.className = "check-status";
+        status.textContent = "⏺ Ещё не проверено";
+        validationStatuses.push(status);
+        item.append((index + 1) + ". ", link, status);
+        list.appendChild(item);
+    });
+    section.hidden = ids.length === 0;
+    updateValidationSummary();
+}
+
+function updateValidationSummary() {
+    const summary = document.getElementById("integrity-summary");
+    if (validationStatuses.length === 0) {
+        summary.textContent = "";
+        return;
+    }
+    if (validationStates.length === 0) {
+        summary.textContent = "Проверка запускается при выдаче новой подборки.";
+        return;
+    }
+    const count = state => validationStates.filter(item => item?.status === state).length;
+    summary.textContent = "Проверено: " + count("ok") + " подходят, "
+        + count("invalid") + " не подходят, "
+        + count("unknown") + " не удалось проверить, "
+        + count("checking") + " в очереди/проверяются.";
+}
+
+function showValidation(index, status, message) {
+    const element = validationStatuses[index];
+    if (!element) return;
+    const symbol = { checking: "⏳", ok: "✓", invalid: "✗", unknown: "?" }[status];
+    element.className = "check-status " + status;
+    element.textContent = symbol + " " + message;
+    validationStates[index] = { status, message };
+    updateValidationSummary();
+}
+
+// The Lichess API intentionally omits the generic "mate" tag, but keeps
+// its specific mateIn1..mateIn5 tags. Other themes must match exactly.
+function matchesExpectedTheme(expectedTheme, themes) {
+    return themes.includes(expectedTheme)
+        || (expectedTheme === "mate"
+            && themes.some(theme => /^mateIn[1-5]$/.test(theme)));
+}
+
+// Compare the live API response with the CSV snapshot generated into this HTML.
+function comparePuzzle(id, expectedTheme, response) {
+    const expected = validationData?.[id];
+    if (!expected) {
+        return { status: "unknown", message: "Нет исходных данных для сравнения" };
+    }
+    const [originalRating, originalGame, originalLastMove, originalSolution] = expected;
+    const puzzle = response?.puzzle;
+    if (!puzzle || !Number.isFinite(puzzle.rating)
+        || !Array.isArray(puzzle.solution) || !Array.isArray(puzzle.themes)) {
+        return { status: "unknown", message: "Lichess вернул неполные данные" };
+    }
+    const problems = [];
+    if (puzzle.id !== id) problems.push("другой ID");
+    if (originalGame && response?.game?.id !== originalGame) {
+        problems.push("изменилась исходная партия");
+    }
+    if (puzzle.lastMove != null && puzzle.lastMove !== originalLastMove) {
+        problems.push("изменился начальный ход");
+    }
+    if (puzzle.solution.join(" ") !== originalSolution) {
+        problems.push("изменилось решение");
+    }
+    if (!matchesExpectedTheme(expectedTheme, puzzle.themes)) {
+        problems.push("нет ожидаемой темы " + expectedTheme);
+    }
+    if (puzzle.rating < appData.ratingMin || puzzle.rating > appData.ratingMax) {
+        problems.push("рейтинг " + puzzle.rating + " вне диапазона "
+            + appData.ratingMin + "–" + appData.ratingMax);
+    }
+    if (problems.length > 0) {
+        return { status: "invalid", message: problems.join("; ") };
+    }
+    if (puzzle.rating !== originalRating) {
+        return {
+            status: "ok",
+            message: "Подходит; рейтинг " + originalRating + " → " + puzzle.rating
+        };
+    }
+    return { status: "ok", message: "Совпадает с базой" };
+}
+
+async function validateSelectedPuzzles(selected) {
+    if (!validationData || Object.keys(validationData).length === 0
+        || selected.length === 0) return;
+    const generation = ++validationGeneration;
+    validationController?.abort();
+    validationController = new AbortController();
+    selected.forEach((_, index) => showValidation(index, "checking", "Ожидает проверки"));
+
+    if (Date.now() < rateLimitedUntil) {
+        selected.forEach((_, index) => showValidation(
+            index, "unknown", "Лимит API: повтори попытку через минуту"
+        ));
+        return;
+    }
+    // Lichess requests one API call at a time. Stop a batch on HTTP 429.
+    for (let index = 0; index < selected.length; index++) {
+        if (generation !== validationGeneration) return;
+        const { id, theme } = selected[index];
+        showValidation(index, "checking", "Проверяется по API Lichess");
+        try {
+            const result = await fetch(
+                "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
+                { signal: validationController.signal, credentials: "omit", cache: "no-store" }
+            );
+            if (generation !== validationGeneration) return;
+            if (result.status === 429) {
+                rateLimitedUntil = Date.now() + 60000;
+                for (let rest = index; rest < selected.length; rest++) {
+                    showValidation(rest, "unknown", "Лимит Lichess (HTTP 429); проверка остановлена");
+                }
+                return;
+            }
+            if (result.status === 404) {
+                showValidation(index, "invalid", "Задача недоступна (HTTP 404)");
+                continue;
+            }
+            if (!result.ok) {
+                showValidation(index, "unknown", "Ошибка API (HTTP " + result.status + ")");
+                continue;
+            }
+            const data = await result.json();
+            if (generation !== validationGeneration) return;
+            const check = comparePuzzle(id, theme, data);
+            showValidation(index, check.status, check.message);
+        } catch (_error) {
+            if (generation !== validationGeneration) return;
+            showValidation(index, "unknown", "Нет ответа API (сеть или CORS)");
+        }
+    }
+}
+
+let lastSelection = [];
+try {
+    const saved = JSON.parse(localStorage.getItem(lastSelectionStorageKey) || "[]");
+    if (Array.isArray(saved) && saved.every(id => typeof id === "string")) {
+        lastSelection = saved;
+    }
+} catch (_error) {
+    // A broken saved selection must not affect puzzle generation.
+}
+renderLastSelection(lastSelection);
+
+function randomItem(array) {
+    return array[
+        Math.floor(
+            Math.random()
+            * array.length
+        )
+    ];
+}
+
+// Persist quota progress separately from the existing used-ID history.
+const balanceStorageKey = storageKey + ":moveBalance";
+const balanceSignature = JSON.stringify(
+    moveCounts.map(count => [count, moveWeights[count]])
+);
+let moveUsage = Object.fromEntries(
+    moveCounts.map(count => [count, 0])
+);
+let savedBalance = null;
+try {
+    savedBalance = JSON.parse(
+        localStorage.getItem(balanceStorageKey) || "null"
+    );
+} catch (_error) {
+    // Invalid quota state must not erase used puzzle IDs.
+}
+if (
+    savedBalance?.signature === balanceSignature
+    && moveCounts.every(count =>
+        Number.isSafeInteger(savedBalance.counts?.[count])
+        && savedBalance.counts[count] >= 0
+    )
+) {
+    moveUsage = { ...savedBalance.counts };
+}
+
+// Give each slot to the move count furthest behind its ideal cumulative
+// weighted share. Break ties randomly; quotas remain integer and balanced.
+function buildMoveQuota(batchSize, previousUsage) {
+    const counts = { ...previousUsage };
+    const quota = Object.fromEntries(
+        moveCounts.map(count => [count, 0])
+    );
+    const totalWeight = moveCounts.reduce(
+        (sum, count) => sum + moveWeights[count], 0
+    );
+    let total = moveCounts.reduce(
+        (sum, count) => sum + counts[count], 0
+    );
+
+    for (let slot = 0; slot < batchSize; slot++) {
+        const nextTotal = total + 1;
+        const deficits = moveCounts.map(count => ({
+            count,
+            value: nextTotal * moveWeights[count] / totalWeight
+                - counts[count]
+        }));
+        const largest = Math.max(
+            ...deficits.map(item => item.value)
+        );
+        const candidates = deficits.filter(
+            item => Math.abs(item.value - largest) < 1e-9
+        );
+        const chosen = randomItem(candidates).count;
+        counts[chosen]++;
+        quota[chosen]++;
+        total++;
+    }
+    return quota;
+}
+
+function shuffleMoveQuota(quota) {
+    const order = [];
+    for (const count of moveCounts) {
+        for (let i = 0; i < quota[count]; i++) {
+            order.push(count);
+        }
+    }
+    // Fisher-Yates: fixed counts, unpredictable positions.
+    for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+}
+
+function getAvailableBuckets(moveCount, selectedThisClick) {
+    const buckets = [];
+    for (const theme of themes) {
+        const available = (puzzles[theme]?.[moveCount] || [])
+            .filter(id => !used.has(id) && !selectedThisClick.has(id));
+        if (available.length > 0) {
+            buckets.push({
+                theme,
+                available,
+                weight: themeWeights[theme]
+            });
+        }
+    }
+    return buckets;
+}
+
+function weightedRandomBucket(buckets) {
+    const totalWeight = buckets.reduce(
+        (sum, bucket) => sum + bucket.weight, 0
+    );
+    let value = Math.random() * totalWeight;
+    for (const bucket of buckets) {
+        value -= bucket.weight;
+        if (value < 0) {
+            return bucket;
+        }
+    }
+    return buckets[buckets.length - 1];
+}
+
+function selectNextPuzzle(moveCount, selectedThisClick) {
+    let buckets = getAvailableBuckets(moveCount, selectedThisClick);
+    if (buckets.length === 0) {
+        // Restart the used-ID cycle when the required move count runs out.
+        // IDs already selected in this click still cannot repeat.
+        const hasCandidate = themes.some(theme =>
+            (puzzles[theme]?.[moveCount] || [])
+                .some(id => !selectedThisClick.has(id))
+        );
+        if (!hasCandidate) {
+            return null;
+        }
+        used.clear();
+        buckets = getAvailableBuckets(moveCount, selectedThisClick);
+    }
+    if (buckets.length === 0) {
+        return null;
+    }
+    const bucket = weightedRandomBucket(buckets);
+    const id = randomItem(bucket.available);
+    used.add(id);
+    selectedThisClick.add(id);
+    return { id, theme: bucket.theme };
+}
+
+function nextPuzzles() {
+    if (themes.length === 0 || moveCounts.length === 0) {
+        return;
+    }
+    const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
+    const order = shuffleMoveQuota(quota);
+    const selectedIds = [];
+    const selectedDetails = [];
+    const selectedThisClick = new Set();
+
+    for (const moveCount of order) {
+        const choice = selectNextPuzzle(moveCount, selectedThisClick);
+        if (choice === null) {
+            // Do not silently replace a missing move count with another.
+            break;
+        }
+        selectedIds.push(choice.id);
+        selectedDetails.push(choice);
+        moveUsage[moveCount]++;
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify([...used]));
+    localStorage.setItem(
+        balanceStorageKey,
+        JSON.stringify({ signature: balanceSignature, counts: moveUsage })
+    );
+
+    // Show the exact IDs before opening tabs; visible even if pop-ups are blocked.
+    localStorage.setItem(lastSelectionStorageKey, JSON.stringify(selectedIds));
+    renderLastSelection(selectedIds);
+
+    if (selectedIds.length < puzzlesPerClick) {
+        alert(
+            "Недостаточно уникальных задач для заданных квот "
+            + "по количеству ходов. Открыты доступные задачи."
+        );
+    }
+    // Open tabs synchronously: awaiting fetch here would trigger popup blockers.
+    for (const id of selectedIds) {
+        window.open("https://lichess.org/training/" + id, "_blank");
+    }
+    void validateSelectedPuzzles(selectedDetails);
+}
+</script>
+
+</body>
+</html>
