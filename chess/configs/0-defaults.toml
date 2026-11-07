@@ -6,8 +6,14 @@ template = "mix.html"
 
 puzzles_per_click = 10
 max_puzzles_per_theme = 1000  # Maximum tasks per theme; 0 = unlimited
-popularity_min = 70
-min_plays = 50
+popularity_min = 85  # Safety floor for small pools
+min_plays = 200      # Attempts, not successful solves
+
+# Relative weights. Their sum is normalized by the generator.
+[quality_weights]
+popularity = 80
+plays = 15
+rating_deviation = 5
 
 [rating]
 min = 1000

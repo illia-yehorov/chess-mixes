@@ -7,7 +7,7 @@ import io
 import json
 import re
 from heapq import heappush, heapreplace
-from math import floor
+from math import floor, isfinite, log1p
 import tomllib
 from datetime import date
 from pathlib import Path
@@ -21,6 +21,9 @@ TEMPLATE_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR.parent / "site" / "mixes"
 DEFAULT_CONFIG_PATH = CONFIG_DIR / "0-defaults.toml"
 DEFAULT_MAX_PUZZLES_PER_THEME = 1000
+QUALITY_PLAYS_SATURATION = 2000
+QUALITY_DEVIATION_CEILING = 200
+QUALITY_WEIGHT_KEYS = {"popularity", "plays", "rating_deviation"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -91,6 +94,7 @@ def validate_config(config: dict) -> None:
         "puzzles_per_click",
         "popularity_min",
         "min_plays",
+        "quality_weights",
         "rating",
         "moves",
         "move_weights",
@@ -104,6 +108,23 @@ def validate_config(config: dict) -> None:
         raise RuntimeError(
             "Missing config keys: "
             + ", ".join(sorted(missing))
+        )
+
+    weights = config["quality_weights"]
+    if not isinstance(weights, dict) or set(weights) != QUALITY_WEIGHT_KEYS:
+        raise RuntimeError(
+            "quality_weights must define popularity, plays, rating_deviation"
+        )
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not isfinite(value)
+        or value < 0
+        for value in weights.values()
+    ) or sum(weights.values()) <= 0:
+        raise RuntimeError(
+            "quality_weights must be finite non-negative numbers "
+            "with a positive sum"
         )
 
     rating_min = config["rating"]["min"]
@@ -277,6 +298,28 @@ def allocate_move_quotas(
     return quotas
 
 
+def quality_score(
+    popularity: int,
+    rating_deviation: int,
+    nb_plays: int,
+    weights: dict[str, float],
+) -> float:
+    """0–100 statistical quality heuristic, not chess-engine validation."""
+    popularity_part = min(1.0, max(0.0, popularity / 100))
+    plays_part = min(
+        1.0, log1p(max(0, nb_plays)) / log1p(QUALITY_PLAYS_SATURATION)
+    )
+    deviation_part = max(
+        0.0, 1.0 - rating_deviation / QUALITY_DEVIATION_CEILING
+    )
+    total_weight = sum(weights.values())
+    return 100.0 * (
+        weights["popularity"] * popularity_part
+        + weights["plays"] * plays_part
+        + weights["rating_deviation"] * deviation_part
+    ) / total_weight
+
+
 def read_puzzles(
     source_path: Path,
     config: dict,
@@ -286,8 +329,9 @@ def read_puzzles(
     dict[str, dict[int, list[str]]],
     dict[str, list],
     dict[str, dict[int, int]],
+    dict[str, float],
 ]:
-    """Read the CSV once, keeping only top-rated candidates in bounded heaps."""
+    """Read the CSV once, keeping best-quality candidates in bounded heaps."""
     if not source_path.is_file():
         raise RuntimeError(
             f"Lichess puzzle database not found: {source_path}"
@@ -295,6 +339,7 @@ def read_puzzles(
 
     limit = config.get("max_puzzles_per_theme", DEFAULT_MAX_PUZZLES_PER_THEME)
     move_weights = parse_move_weights(config)
+    quality_weights = config["quality_weights"]
     candidates = {
         theme_id: {move_count: [] for move_count in active_move_counts}
         for theme_id in theme_ids
@@ -343,9 +388,14 @@ def read_puzzles(
 
                 puzzle_id = row[0]
                 puzzle_themes = set(row[7].split())
-                # Higher popularity, lower deviation, then more plays.
-                # Puzzle ID is a stable tie-breaker across CSV versions.
-                rank = (popularity, -rating_deviation, nb_plays, puzzle_id)
+                # Combined score is primary; other fields break exact ties.
+                # Puzzle ID makes selection independent of CSV row order.
+                score = quality_score(
+                    popularity, rating_deviation, nb_plays, quality_weights
+                )
+                rank = (
+                    score, popularity, -rating_deviation, nb_plays, puzzle_id
+                )
                 snapshot = None
 
                 for theme_id in theme_ids:
@@ -372,6 +422,7 @@ def read_puzzles(
         for theme_id in theme_ids
     }
     validation_data: dict[str, list] = {}
+    selected_scores: dict[str, float] = {}
 
     for theme_id in theme_ids:
         available = {
@@ -385,11 +436,12 @@ def read_puzzles(
                 candidates[theme_id][move_count], reverse=True
             )[:quotas[move_count]]
             for rank, snapshot in best:
-                puzzle_id = rank[3]
+                puzzle_id = rank[4]
                 puzzles[theme_id][move_count].append(puzzle_id)
                 validation_data[puzzle_id] = snapshot
+                selected_scores[puzzle_id] = rank[0]
 
-    return puzzles, validation_data, found_counts
+    return puzzles, validation_data, found_counts, selected_scores
 
 
 def filter_available(
@@ -522,6 +574,7 @@ def print_statistics(
     move_weights: dict[int, float],
     output_path: Path,
     found_counts: dict[str, dict[int, int]] | None = None,
+    selected_scores: dict[str, float] | None = None,
 ) -> None:
     print(f"Набор: {config['name']}")
     print()
@@ -556,6 +609,22 @@ def print_statistics(
     print(
         f"Лимит на тему: {limit if limit else 'без ограничения'}"
     )
+    unique_ids = {
+        puzzle_id
+        for theme in themes
+        if theme.get("weight", 1) > 0
+        for ids in puzzles[theme["id"]].values()
+        for puzzle_id in ids
+    }
+    print(f"Уникальных задач: {len(unique_ids)}")
+    if selected_scores is not None and unique_ids:
+        scores = [selected_scores[puzzle_id] for puzzle_id in unique_ids]
+        print(
+            "Quality Score (0–100, уникальные задачи): "
+            f"min {min(scores):.2f}, "
+            f"среднее {sum(scores) / len(scores):.2f}, "
+            f"max {max(scores):.2f}"
+        )
     print(
         f"Создан файл: "
         f"{output_path.relative_to(BASE_DIR.parent)}"
@@ -618,7 +687,7 @@ def main() -> None:
         TEMPLATE_DIR / config["template"]
     ).resolve()
 
-    puzzles, validation_data, found_counts = read_puzzles(
+    puzzles, validation_data, found_counts, selected_scores = read_puzzles(
         source_path,
         config,
         theme_ids,
@@ -765,6 +834,7 @@ def main() -> None:
         move_weights,
         output_path,
         found_counts,
+        selected_scores,
     )
 
 

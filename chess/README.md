@@ -19,10 +19,10 @@ Mix numbers:
 - **No argument** -> generate all numbered mixes, sorted by filename; stop if any generator fails. The shared `0-defaults.toml` is skipped, and `0` is not a valid batch argument.
 - `1` -> `1-basic` (Основная солянка)
 - `2` -> `2-deflection-attraction` (Завлечение и отвлечение)
-- `3` -> `3-interference` (Перекрытие / `interference`; rating 900–1200; 2–4 moves)
+- `3` -> `3-interference` (Перекрытие / `interference`; rating 1000–1400; 2–4 moves)
 - `4` -> `4-clearance` (Освобождение линии или поля / `clearance`; rating 900–1200; 2–4 moves)
 
-If the number is missing or unknown, the batch file prints the available mixes.
+An unknown number prints the available mixes; no number generates all mixes.
 
 ## Direct generator usage
 
@@ -43,8 +43,13 @@ source = "lichess_db_puzzle.csv.zst"
 template = "mix.html"
 puzzles_per_click = 10
 max_puzzles_per_theme = 1000
-popularity_min = 70
-min_plays = 50
+popularity_min = 85
+min_plays = 200
+
+[quality_weights]
+popularity = 80
+plays = 15
+rating_deviation = 5
 
 [rating]
 min = 1000
@@ -78,9 +83,9 @@ The shared `0-defaults.toml` **is not a mix**: direct generation from it is reje
 
 The shared default `max_puzzles_per_theme = 1000` limits the **number of IDs for each theme**, not the total across all themes. Individual mix configs can override it. Use any non-negative integer, or `0` to disable the puzzle limit (unrelated to batch arguments). Existing `popularity_min`, `min_plays`, the rating range and move-length filters still apply before ranking.
 
-Eligible tasks are ranked by `Popularity` (higher first), `RatingDeviation` (lower first), then `NbPlays` (higher first), with the puzzle ID as a deterministic tie-breaker. A single streaming pass keeps no more than the configured limit per theme **and move count** while counting all eligible rows. Then the final per-theme limit is divided proportionally among active `move_weights` using integer quotas; any shortage for a move count is redistributed to other lengths. For 1000 slots and weights `2 = 20, 3 = 50, 4 = 30`, the targets are 200/500/300 respectively when enough candidates exist.
+Eligible tasks are ranked by a combined **Quality Score (0–100)** so all three signals can influence the selection at once. `[quality_weights]` defaults to 80/15/5; relative weights are divided by their sum and can be overridden in a numbered mix. Components are: `Popularity` clipped to 0–100; `NbPlays` normalized as `min(1, ln(1 + plays) / ln(2001))` to reduce the influence of huge attempt counts; `RatingDeviation` normalized as `max(0, 1 - RD / 200)`. The weighted average is multiplied by 100. Exact score ties use higher Popularity, lower RD, higher NbPlays and then puzzle ID. Default minimum thresholds are **85 Popularity and 200 attempts** even for undersupplied themes. `NbPlays` is attempts, not successful solves. RD measures uncertainty of difficulty, not chess-line quality. A single streaming pass keeps no more than the configured limit per theme **and move count** while counting all eligible rows. Then the final per-theme limit is divided proportionally among active `move_weights` using integer quotas; any shortage for a move count is redistributed to other lengths. For 1000 slots and weights `2 = 20, 3 = 50, 4 = 30`, the targets are 200/500/300 respectively when enough candidates exist.
 
-The selected IDs (and only their Lichess API validation snapshots) are saved into HTML. JavaScript still picks **random, non-repeating tasks** from those IDs when you click. The terminal output reports how many eligible tasks were **found** and how many were **selected** for every theme and move count, so you can check quotas. This changes only newly generated HTML; existing published files stay unchanged until regenerated and published via PR.
+The selected IDs (and only their Lichess API validation snapshots) are saved into HTML. JavaScript still picks **random, non-repeating tasks** from those IDs when you click. The terminal output reports how many eligible tasks were **found** and **selected** for every theme and move count, plus the **unique selected ID count** and **min/mean/max Quality Score** across those IDs. The score is a statistical heuristic, not chess-engine analysis of opponent responses. This changes only newly generated HTML; existing published files stay unchanged until regenerated and published via PR.
 
 Each mix is defined by a TOML file in `chess/configs/`. To add another mix, create another TOML config. Add a numeric mapping to `chess-generate.bat` if you want to launch it by number.
 
